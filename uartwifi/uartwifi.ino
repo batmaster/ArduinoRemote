@@ -2,10 +2,14 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define ONE_WIRE_BUS 2
+#define ONE_WIRE_BUS 10
 OneWire oneWire(ONE_WIRE_BUS);
-
 DallasTemperature sensors(&oneWire);
+
+#define RELAY_1 28
+#define RELAY_2 26
+#define RELAY_3 24
+#define RELAY_4 22
 
 #define DEBUG true
 
@@ -16,16 +20,46 @@ void setup() {
 
 //    setHTTP();
 
-    sensors.begin();
+//      setTemp();
+
+  setRelays();
 }
 
 void loop() {
 
-  checkTemp(0);
-  checkTemp(1);
-  checkTemp(2);
+  digitalWrite(RELAY_4, LOW);
+  digitalWrite(RELAY_1, HIGH);
+  Serial.println(1);
+  delay(500);
+  digitalWrite(RELAY_1, LOW);
+  digitalWrite(RELAY_2, HIGH);
+  Serial.println(2);
+  delay(500);
+  digitalWrite(RELAY_2, LOW);
+  digitalWrite(RELAY_3, HIGH);
+  Serial.println(3);
+  delay(500);
+  digitalWrite(RELAY_3, LOW);
+  digitalWrite(RELAY_4, HIGH);
+  Serial.println(4);
+  delay(500);
+
+//  checkTemp(0);
+//  checkTemp(1);
+//  checkTemp(2);
 
 //    checkHTTP();
+}
+
+void setRelays() {
+  pinMode(RELAY_1, OUTPUT);
+  pinMode(RELAY_2, OUTPUT);
+  pinMode(RELAY_3, OUTPUT);
+  pinMode(RELAY_4, OUTPUT);
+  digitalWrite(RELAY_1, LOW);
+  digitalWrite(RELAY_2, LOW);
+  digitalWrite(RELAY_3, LOW);
+  digitalWrite(RELAY_4, LOW);
 }
 
 void setTemp() {
