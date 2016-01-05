@@ -1,10 +1,56 @@
 
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+#define ONE_WIRE_BUS 2
+OneWire oneWire(ONE_WIRE_BUS);
+
+DallasTemperature sensors(&oneWire);
+
 #define DEBUG true
 
 void setup() {
     Serial.begin(9600);
     Serial1.begin(115200);
     Serial.println("Booting...");
+
+//    setHTTP();
+
+    sensors.begin();
+}
+
+void loop() {
+
+  checkTemp(0);
+  checkTemp(1);
+  checkTemp(2);
+
+//    checkHTTP();
+}
+
+void setTemp() {
+   Serial.println("Dallas Temperature IC Control Library Demo");
+
+  // Start up the library
+  sensors.begin();
+}
+
+void checkTemp(int index) {
+   // call sensors.requestTemperatures() to issue a global temperature
+  // request to all devices on the bus
+  Serial.print(" Requesting temperatures...");
+  sensors.requestTemperatures(); // Send the command to get temperatures
+  Serial.println("DONE");
+
+  Serial.print("Temperature for Device ");
+  Serial.print(index);
+  Serial.print(" is: ");
+  Serial.print(sensors.getTempCByIndex(index)); // Why "byIndex"?
+// You can have more than one IC on the same bus.
+// 0 refers to the first IC on the wire
+}
+
+void setHTTP() {
     Serial.println("1=========================");
     sendCommand("AT+RST\r\n",2000,DEBUG); // reset module
     Serial.println("2=========================");
@@ -25,40 +71,34 @@ void setup() {
     Serial.println("Server Ready");
 }
 
-void loop() {
-
-    checkHTTP();
-}
 
 void checkHTTP() {
     if(Serial1.available()) // check if the esp is sending a message
     {
-      sendHTTPResponse(0, "");
-      Serial.println();
-//        if(Serial1.find("+IPD,"))
-//        {
-//            delay(1000); // wait for the serial buffer to fill up (read all the serial data)
-//            // get the connection id so that we can then disconnect
-//            int connectionId = Serial1.read()-48; // subtract 48 because the read() function returns
-//            // the ASCII decimal value and 0 (the first decimal number) starts at 48
-//
-////            Serial1.find("pin="); // advance cursor to "pin="
-//
-//            int d1 = (Serial1.read()-48); // get first number i.e. if the pin 13 then the 1st number is 1
-//            int d2 = (Serial1.read()-48);
-//            int d3 = (Serial1.read()-48);
-//            int d4 = (Serial1.read()-48);
-//            int d5 = (Serial1.read()-48);
-//            int d6 = (Serial1.read()-48);
-//
-//            String content = "hello";
-//            
-//
-//            Serial.print("d1 = ");
-//            Serial.print(d1);
-//            Serial.println();
-//             sendHTTPResponse(connectionId, content);
-//        }
+        if(Serial1.find("+IPD,"))
+        {
+            delay(1000); // wait for the serial buffer to fill up (read all the serial data)
+            // get the connection id so that we can then disconnect
+            int connectionId = Serial1.read()-48; // subtract 48 because the read() function returns
+            // the ASCII decimal value and 0 (the first decimal number) starts at 48
+
+//            Serial1.find("pin="); // advance cursor to "pin="
+
+            int d1 = (Serial1.read()-48); // get first number i.e. if the pin 13 then the 1st number is 1
+            int d2 = (Serial1.read()-48);
+            int d3 = (Serial1.read()-48);
+            int d4 = (Serial1.read()-48);
+            int d5 = (Serial1.read()-48);
+            int d6 = (Serial1.read()-48);
+
+            String content = "hello";
+            
+
+            Serial.print("d1 = ");
+            Serial.print(d1);
+            Serial.println();
+             sendHTTPResponse(connectionId, content);
+        }
     }
 }
 
