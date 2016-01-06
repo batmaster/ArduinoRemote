@@ -11,6 +11,11 @@ DallasTemperature sensors(&oneWire);
 #define RELAY_3 24
 #define RELAY_4 22
 
+#include <SPI.h>
+#include <SD.h>
+
+const int chipSelect = 4;
+
 #define DEBUG true
 
 void setup() {
@@ -18,37 +23,68 @@ void setup() {
     Serial1.begin(115200);
     Serial.println("Booting...");
 
-//    setHTTP();
+    setHTTP();
 
-//      setTemp();
+      setTemp();
 
-  setRelays();
+//  setRelays();
 }
 
 void loop() {
+  
+//  digitalWrite(RELAY_4, LOW);
+//  digitalWrite(RELAY_1, HIGH);
+//  Serial.println(1);
+//  delay(500);
+//  digitalWrite(RELAY_1, LOW);
+//  digitalWrite(RELAY_2, HIGH);
+//  Serial.println(2);
+//  delay(500);
+//  digitalWrite(RELAY_2, LOW);
+//  digitalWrite(RELAY_3, HIGH);
+//  Serial.println(3);
+//  delay(500);
+//  digitalWrite(RELAY_3, LOW);
+//  digitalWrite(RELAY_4, HIGH);
+//  Serial.println(4);
+//  delay(500);
 
-  digitalWrite(RELAY_4, LOW);
-  digitalWrite(RELAY_1, HIGH);
-  Serial.println(1);
-  delay(500);
-  digitalWrite(RELAY_1, LOW);
-  digitalWrite(RELAY_2, HIGH);
-  Serial.println(2);
-  delay(500);
-  digitalWrite(RELAY_2, LOW);
-  digitalWrite(RELAY_3, HIGH);
-  Serial.println(3);
-  delay(500);
-  digitalWrite(RELAY_3, LOW);
-  digitalWrite(RELAY_4, HIGH);
-  Serial.println(4);
-  delay(500);
+  checkTemp(0);
+  checkTemp(1);
+  checkTemp(2);
 
-//  checkTemp(0);
-//  checkTemp(1);
-//  checkTemp(2);
+    checkHTTP();
+}
 
-//    checkHTTP();
+void setSD() {
+  pinMode(SS, OUTPUT);
+}
+
+String readSD(String filename) {
+  String str = "";
+  if (!SD.begin(chipSelect)) {
+    return str;
+  }
+
+  File myFile = SD.open(filename);
+  if (myFile) {
+    while (myFile.available()) {
+      str += myFile.read();
+    }
+    myFile.close();
+  } else {
+    return str;
+  }
+}
+
+void writeSD(String filename, String str) {
+  File myFile = SD.open(filename);
+  if (myFile) {
+    myFile.println(str);
+    myFile.close();
+  } else {
+    return ;
+  }
 }
 
 void setRelays() {
@@ -63,25 +99,20 @@ void setRelays() {
 }
 
 void setTemp() {
-   Serial.println("Dallas Temperature IC Control Library Demo");
-
-  // Start up the library
   sensors.begin();
 }
 
 void checkTemp(int index) {
-   // call sensors.requestTemperatures() to issue a global temperature
-  // request to all devices on the bus
+
   Serial.print(" Requesting temperatures...");
-  sensors.requestTemperatures(); // Send the command to get temperatures
+  sensors.requestTemperatures();
   Serial.println("DONE");
 
   Serial.print("Temperature for Device ");
   Serial.print(index);
   Serial.print(" is: ");
-  Serial.print(sensors.getTempCByIndex(index)); // Why "byIndex"?
-// You can have more than one IC on the same bus.
-// 0 refers to the first IC on the wire
+  double a = sensors.getTempCByIndex(index);
+  Serial.print(a);
 }
 
 void setHTTP() {
@@ -90,7 +121,7 @@ void setHTTP() {
     Serial.println("2=========================");
     sendCommand("AT+CWMODE=3\r\n",1000,DEBUG); // configure as access point
     Serial.println("3=========================");
-    sendCommand("AT+CWJAP=\"MAIN\",\"\"\r\n",3000,DEBUG);
+    sendCommand("AT+CWJAP=\"AP\",\"12345678\"\r\n",3000,DEBUG);
     Serial.println("4=========================");
     delay(1000);
     Serial.println("5=========================");
@@ -116,22 +147,21 @@ void checkHTTP() {
             int connectionId = Serial1.read()-48; // subtract 48 because the read() function returns
             // the ASCII decimal value and 0 (the first decimal number) starts at 48
 
-//            Serial1.find("pin="); // advance cursor to "pin="
+//            Serial1.find("?relay=");
+//
+//              int r1 = (Serial1.read()-48);
+//              int r2 = (Serial1.read()-48);
+//              int r3 = (Serial1.read()-48);
+//              int r4 = (Serial1.read()-48);
+//              
+//             String content = r1 + " ssssa" + r2 + r3 + r4;
 
-            int d1 = (Serial1.read()-48); // get first number i.e. if the pin 13 then the 1st number is 1
-            int d2 = (Serial1.read()-48);
-            int d3 = (Serial1.read()-48);
-            int d4 = (Serial1.read()-48);
-            int d5 = (Serial1.read()-48);
-            int d6 = (Serial1.read()-48);
-
-            String content = "hello";
+//              digitalWrite(RELAY_1, r1);
+//              digitalWrite(RELAY_2, r2);
+//              digitalWrite(RELAY_3, r3);
+//              digitalWrite(RELAY_4, r4);
             
-
-            Serial.print("d1 = ");
-            Serial.print(d1);
-            Serial.println();
-             sendHTTPResponse(connectionId, content);
+             sendHTTPResponse(connectionId, "ok");
         }
     }
 }
@@ -232,9 +262,9 @@ String sendData(String command, const int timeout, boolean debug)
     Serial1.write(data,dataSize); // send the read character to the Serial1
     if(debug)
     {
-        Serial.println("\r\n====== HTTP Response From Arduino ======");
+        Serial.println("\r\nvvvvvv HTTP Response From Arduino vvvvvv");
         Serial.write(data,dataSize);
-        Serial.println("\r\n========================================");
+        Serial.println("\r\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
     }
 
     long int time = millis();
