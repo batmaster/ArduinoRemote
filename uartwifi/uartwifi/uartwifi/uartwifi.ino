@@ -1,4 +1,5 @@
 
+// นำเข้าไลบรารี่สำหรับพวกวัดอุณหภูมิ
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
@@ -14,20 +15,27 @@ DallasTemperature sensors(&oneWire);
 #include <SPI.h>
 #include <SD.h>
 
-const int chipSelect = 4;
+const int chipSelect = 48;
 
 #define DEBUG true
+
+const String bid = "A0001";
 
 void setup() {
     Serial.begin(9600);
     Serial1.begin(115200);
     Serial.println("Booting...");
 
-    setHTTP();
+    setHTTP("MAIN", "", 8080);
 
-      setTemp();
-
-//  setRelays();
+    setTemp();
+    
+    setRelays();
+Serial.println("start");
+    setSD();
+    writeSD("test.txt", "test");
+    Serial.println(readSD("test.txt"));
+    Serial.println("end");
 }
 
 void loop() {
@@ -49,79 +57,104 @@ void loop() {
 //  Serial.println(4);
 //  delay(500);
 
-  checkTemp(0);
-  checkTemp(1);
-  checkTemp(2);
+//    checkTemp(0);
+//    checkTemp(1);
+//  checkTemp(2);
 
-    checkHTTP();
+  checkHTTP();
+
+  ping();
+}
+
+int runner = 0;
+char server[] = "http://188.166.180.204:8888/arduinoping.php";
+
+void ping() {
+  if (runner == 200) {
+    
+  }
 }
 
 void setSD() {
-  pinMode(SS, OUTPUT);
+    pinMode(SS, OUTPUT);
 }
 
 String readSD(String filename) {
-  String str = "";
-  if (!SD.begin(chipSelect)) {
-    return str;
-  }
-
-  File myFile = SD.open(filename);
-  if (myFile) {
-    while (myFile.available()) {
-      str += myFile.read();
+    String str = "";
+    if (!SD.begin(chipSelect)) {
+      return str;
     }
-    myFile.close();
-  } else {
-    return str;
-  }
+  
+    File myFile = SD.open(filename);
+    if (myFile) {
+      while (myFile.available()) {
+        str += myFile.read();
+      }
+      myFile.close();
+    } else {
+      return str;
+    }
 }
 
 void writeSD(String filename, String str) {
-  File myFile = SD.open(filename);
-  if (myFile) {
-    myFile.println(str);
-    myFile.close();
-  } else {
-    return ;
-  }
+    File myFile = SD.open(filename);
+    if (myFile) {
+      myFile.println(str);
+      myFile.close();
+    } else {
+      return ;
+    }
 }
 
 void setRelays() {
-  pinMode(RELAY_1, OUTPUT);
-  pinMode(RELAY_2, OUTPUT);
-  pinMode(RELAY_3, OUTPUT);
-  pinMode(RELAY_4, OUTPUT);
-  digitalWrite(RELAY_1, LOW);
-  digitalWrite(RELAY_2, LOW);
-  digitalWrite(RELAY_3, LOW);
-  digitalWrite(RELAY_4, LOW);
+    pinMode(RELAY_1, OUTPUT);
+    pinMode(RELAY_2, OUTPUT);
+    pinMode(RELAY_3, OUTPUT);
+    pinMode(RELAY_4, OUTPUT);
+    digitalWrite(RELAY_1, LOW);
+    digitalWrite(RELAY_2, LOW);
+    digitalWrite(RELAY_3, LOW);
+    digitalWrite(RELAY_4, LOW);
 }
 
 void setTemp() {
-  sensors.begin();
+    sensors.begin();
 }
 
 void checkTemp(int index) {
+    sensors.requestTemperatures();
+  
+    Serial.print("Temperature for Device ");
+    Serial.print(index);
+    Serial.print(" is: ");
+    double a = sensors.getTempCByIndex(index);
+    Serial.println(a);
 
-  Serial.print(" Requesting temperatures...");
-  sensors.requestTemperatures();
-  Serial.println("DONE");
+    // ควบคุมฮีต
+    if (a > 25) {
+      digitalWrite(RELAY_1, HIGH);
+    }
+    else {
+      digitalWrite(RELAY_1, LOW);
+    }
 
-  Serial.print("Temperature for Device ");
-  Serial.print(index);
-  Serial.print(" is: ");
-  double a = sensors.getTempCByIndex(index);
-  Serial.print(a);
+    // กรอง 
+    if (a < 27) {
+      digitalWrite(RELAY_2, HIGH);
+    }
+    else {
+      digitalWrite(RELAY_2, LOW);
+    }
+    
 }
 
-void setHTTP() {
+void setHTTP(String ssid, String pass, int port) {
     Serial.println("1=========================");
     sendCommand("AT+RST\r\n",2000,DEBUG); // reset module
     Serial.println("2=========================");
     sendCommand("AT+CWMODE=3\r\n",1000,DEBUG); // configure as access point
     Serial.println("3=========================");
-    sendCommand("AT+CWJAP=\"AP\",\"12345678\"\r\n",3000,DEBUG);
+    sendCommand("AT+CWJAP=\"" + ssid + "\",\"" + pass + "\"\r\n",3000,DEBUG);
     Serial.println("4=========================");
     delay(1000);
     Serial.println("5=========================");
@@ -129,7 +162,7 @@ void setHTTP() {
     Serial.println("6=========================");
     sendCommand("AT+CIPMUX=1\r\n",1000,DEBUG); // configure for multiple connections
     Serial.println("7=========================");
-    sendCommand("AT+CIPSERVER=1,8080\r\n",1000,DEBUG); // turn on server on port 80
+    sendCommand("AT+CIPSERVER=1," + port + "\r\n",1000,DEBUG); // turn on server on port 80
     Serial.println("8=========================");
 
     
@@ -147,21 +180,33 @@ void checkHTTP() {
             int connectionId = Serial1.read()-48; // subtract 48 because the read() function returns
             // the ASCII decimal value and 0 (the first decimal number) starts at 48
 
-//            Serial1.find("?relay=");
-//
-//              int r1 = (Serial1.read()-48);
-//              int r2 = (Serial1.read()-48);
-//              int r3 = (Serial1.read()-48);
-//              int r4 = (Serial1.read()-48);
-//              
-//             String content = r1 + " ssssa" + r2 + r3 + r4;
-
-//              digitalWrite(RELAY_1, r1);
-//              digitalWrite(RELAY_2, r2);
-//              digitalWrite(RELAY_3, r3);
-//              digitalWrite(RELAY_4, r4);
-            
-             sendHTTPResponse(connectionId, "ok");
+            Serial1.find("relay=");
+              int r1 = (Serial1.read()-48);
+              int r2 = (Serial1.read()-48);
+              int r3 = (Serial1.read()-48);
+              int r4 = (Serial1.read()-48);
+              
+            if (r1 != 9) {
+                  // -6 = *
+                  if (r1 != -6) {
+                        digitalWrite(RELAY_1, r1);
+                      }
+                      if (r2 != -6) {
+                        digitalWrite(RELAY_2, r2);
+                      }
+                      if (r3 != -6) {
+                        digitalWrite(RELAY_3, r3);
+                      }
+                      if (r4 != -6) {
+                        digitalWrite(RELAY_4, r4);
+                      }
+                    
+                     sendHTTPResponse(connectionId, "ok");
+              }
+              else {
+                
+                
+              }
         }
     }
 }
