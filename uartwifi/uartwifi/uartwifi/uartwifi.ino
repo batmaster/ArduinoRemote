@@ -759,8 +759,9 @@ void checkKeypad() {
          
          tmp.remove(indexEdit, 1);
          chtmp = tmp[indexEdit];
-         if (tmp.length() < indexEdit) {
+         if (tmp.length() - 1 < indexEdit) {
            indexEdit--;
+           en--;
          }
 
          lastButton = -1;
