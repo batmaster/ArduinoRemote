@@ -296,7 +296,7 @@ int en = 0;
 
 
 int lastButton = -1;
-int indexInButton = 0;
+int indexInButton = -1;
 
 
 
@@ -477,7 +477,7 @@ void checkKeypad() {
         // setBOARD_NAME();
         Serial.println(BOARD_NAME);
         lastButton = -1;
-        indexInButton = 0;
+        indexInButton = -1;
         indexEdit = 0;
         en = 0;
         blink = 0;
@@ -487,7 +487,7 @@ void checkKeypad() {
       else if (c == '#') {
         tmp = "";
         lastButton = -1;
-        indexInButton = 0;
+        indexInButton = -1;
         indexEdit = 0;
         en = 0;
         blink = 0;
@@ -503,9 +503,16 @@ void checkKeypad() {
             indexInButton = 0;
           }
           else {
-            indexInButton++;
+            if (indexInButton + 1 < b1.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
           }
         }
+        tmp[indexEdit] = b1[indexInButton];
+        lastButton = 1;
       }
       else if (c == '2') {
         if (lastButton != 2) {
@@ -516,9 +523,176 @@ void checkKeypad() {
             indexInButton = 0;
           }
           else {
-            indexInButton++;
+            if (indexInButton + 1 < b2.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
           }
         }
+        tmp[indexEdit] = b2[indexInButton];
+        lastButton = 2;
+      }
+      else if (c == '3') {
+        if (lastButton != 3) {
+          indexInButton = 0;
+        }
+        else {
+          if (indexInButton == b3.length() - 1) {
+            indexInButton = 0;
+          }
+          else {
+            if (indexInButton + 1 < b3.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
+          }
+        }
+        tmp[indexEdit] = b3[indexInButton];
+        lastButton = 3;
+      }
+      else if (c == '4') {
+        if (lastButton != 4) {
+          indexInButton = 0;
+        }
+        else {
+          if (indexInButton == b4.length() - 1) {
+            indexInButton = 0;
+          }
+          else {
+            if (indexInButton + 1 < b4.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
+          }
+        }
+        tmp[indexEdit] = b4[indexInButton];
+        lastButton = 4;
+      }
+      else if (c == '5') {
+        if (lastButton != 5) {
+          indexInButton = 0;
+        }
+        else {
+          if (indexInButton == b5.length() - 1) {
+            indexInButton = 0;
+          }
+          else {
+            if (indexInButton + 1 < b5.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
+          }
+        }
+        tmp[indexEdit] = b5[indexInButton];
+        lastButton = 5;
+      }
+      else if (c == '6') {
+        if (lastButton != 6) {
+          indexInButton = 0;
+        }
+        else {
+          if (indexInButton == b6.length() - 1) {
+            indexInButton = 0;
+          }
+          else {
+            if (indexInButton + 1 < b6.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
+          }
+        }
+        tmp[indexEdit] = b6[indexInButton];
+        lastButton = 6;
+      }
+      else if (c == '7') {
+        if (lastButton != 7) {
+          indexInButton = 0;
+        }
+        else {
+          if (indexInButton == b7.length() - 1) {
+            indexInButton = 0;
+          }
+          else {
+            if (indexInButton + 1 < b7.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
+          }
+        }
+        tmp[indexEdit] = b7[indexInButton];
+        lastButton = 7;
+      }
+      else if (c == '8') {
+        if (lastButton != 8) {
+          indexInButton = 0;
+        }
+        else {
+          if (indexInButton == b8.length() - 1) {
+            indexInButton = 0;
+          }
+          else {
+            if (indexInButton + 1 < b8.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
+          }
+        }
+        tmp[indexEdit] = b8[indexInButton];
+        lastButton = 8;
+      }
+      else if (c == '9') {
+        if (lastButton != 9) {
+          indexInButton = 0;
+        }
+        else {
+          if (indexInButton == b9.length() - 1) {
+            indexInButton = 0;
+          }
+          else {
+            if (indexInButton + 1 < b9.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
+          }
+        }
+        tmp[indexEdit] = b9[indexInButton];
+        lastButton = 9;
+      }
+      else if (c == '0') {
+        if (lastButton != 0) {
+          indexInButton = 0;
+        }
+        else {
+          if (indexInButton == b0.length() - 1) {
+            indexInButton = 0;
+          }
+          else {
+            if (indexInButton + 1 < b0.length()) {
+              indexInButton++;
+            }
+            else {
+              indexInButton = 0;
+            }
+          }
+        }
+        tmp[indexEdit] = b2[indexInButton];
+        lastButton = 0;
       }
       else if (c == 'A') {
          tmp[indexEdit] = chtmp;
@@ -534,6 +708,8 @@ void checkKeypad() {
             else {
                en = indexEdit + 16;
             }
+
+            indexInButton = -1;
           }
         
       }
@@ -551,8 +727,51 @@ void checkKeypad() {
             else {
                en = tmp.length();
             }
+
+            indexInButton = -1;
         }
 
+      }
+      else if (c == 'B') {
+         tmp[indexEdit] = chtmp;
+         
+         frame = 0;
+         
+        if (indexEdit > 0) {
+          indexEdit--;
+
+          if (tmp.length() - indexEdit > 16) {
+              en = indexEdit + 16;
+            }
+            else {
+               en = tmp.length();
+            }
+
+            indexInButton = -1;
+        }
+
+      } else if (c == 'D') {
+         Serial.print(tmp);
+         Serial.print(" ");
+         Serial.print(indexEdit);
+         Serial.print(" ");
+         Serial.print(tmp[indexEdit]);
+         
+         tmp.remove(indexEdit, 1);
+         chtmp = tmp[indexEdit];
+         if (tmp.length() < indexEdit) {
+           indexEdit--;
+         }
+
+         lastButton = -1;
+         indexInButton = -1;
+
+         Serial.print(" ");
+         Serial.print(tmp);
+         Serial.print(" ");
+         Serial.println(indexEdit);
+
+         
       }
     }
     
