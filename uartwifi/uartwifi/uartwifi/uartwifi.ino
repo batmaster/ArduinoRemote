@@ -1,3 +1,4 @@
+#include <stdio.h>
 
 // นำเข้าไลบรารี่สำหรับพวกวัดอุณหภูมิ
 #include <OneWire.h>
@@ -105,8 +106,8 @@ void getBased() {
   
   HEATER_MODE = EEPROM.read(1);
   FILTER_MODE = EEPROM.read(2);
-  HEATER_MIN = EEPROM.read(3) + EEPROM.read(4) / 100;
-  FILTER_MAX = EEPROM.read(5) + EEPROM.read(6) / 100;
+  HEATER_MIN = EEPROM.read(3) + (EEPROM.read(4) / 100.0);
+  FILTER_MAX = EEPROM.read(5) + (EEPROM.read(6) / 100.0);
   WIFI_MODE = EEPROM.read(7);
   
   while (true) {
@@ -221,11 +222,11 @@ String menu[] = {
   "6 Reboot"
 };
 
-int sizeMenuSub[] = {1, 1, 2, 7, 1, 1};
+int sizeMenuSub[] = {1, 1, 4, 7, 1, 1};
 String menuSub[][7] = {
   {"1.1 Board Name"},
   {"2.1 Feed Now !"},
-  {"3.1 Set Heater Min", "3.2 Set Filter Max"},
+  {"3.1 Heater Min", "3.2 Filter Max", "3.3 Heater Mode", "3.4 Filter Mode"},
   {"4.1 Internet Info.", "4.2 Intranet Info", "4.3 Set Mode", "4.4 Set SSID", "4.5 Password", "4.6 Set Static IP", "4.7 Set Port"},
   {"5.1 Confirm !"},
   {"6.1 Confirm !"}
@@ -290,7 +291,7 @@ void loop() {
   
 }
 
-String tmp;
+String tmp = "";
 int indexEdit = 0;
 int en = 0;
 
@@ -319,7 +320,7 @@ sendHTTP("188.166.180.204", 8888, "/arduinoping.php?bid=A0001&port=8080");
 
 
 int blink = 0;
-char chtmp = 'A';
+char chtmp = '_';
 
 void showLCD() {
   if (lcdMode == 0) {
@@ -360,10 +361,10 @@ void showLCD() {
     lcd.print("* OK      # BACK");
   }
   else if (lcdMode == 11) {
-    if (frame < 0.5*frameSec) {
+    if (frame < 0.25*frameSec) {
       blink = 0;
     }
-    else if (frame < 1.0*frameSec) {
+    else if (frame < 0.5*frameSec) {
       blink = 1;
     }
     else {
@@ -377,7 +378,6 @@ void showLCD() {
         chtmp = tmp[indexEdit];
       tmp[indexEdit] = '~';
       x[0] = '~';
-      blink = 0;
     }
     else {
       tmp[indexEdit] = chtmp;
@@ -387,6 +387,58 @@ void showLCD() {
     lcd.print(x);
     lcd.setCursor(0, 1);
     lcd.print("< A  B >   del D");
+
+    frame++;
+  }
+  else if (lcdMode == 31 || lcdMode == 32) {
+    if (frame < 0.25*frameSec) {
+      blink = 0;
+    }
+    else if (frame < 0.5*frameSec) {
+      blink = 1;
+    }
+    else {
+      frame = 0;
+    }
+    
+    if (blink == 0) {
+      if (tmp[indexEdit] != '~')
+        chtmp = tmp[indexEdit];
+      tmp[indexEdit] = '~';
+    }
+    else {
+      tmp[indexEdit] = chtmp;
+    }
+    lcd.setCursor(0, 0);
+    lcd.print(tmp);
+    lcd.setCursor(0, 1);
+    lcd.print("< A  B >        ");
+
+    frame++;
+  }
+  else if (lcdMode == 33 || lcdMode == 34) {
+    if (frame < 0.25*frameSec) {
+      blink = 0;
+    }
+    else if (frame < 0.5*frameSec) {
+      blink = 1;
+    }
+    else {
+      frame = 0;
+    }
+    
+    if (blink == 0) {
+      if (tmp[indexEdit] != '~')
+        chtmp = tmp[indexEdit];
+      tmp[indexEdit] = '~';
+    }
+    else {
+      tmp[indexEdit] = chtmp;
+    }
+    lcd.setCursor(0, 0);
+    lcd.print(tmp);
+    lcd.setCursor(0, 1);
+    lcd.print("0 Auto  1 Manual");
 
     frame++;
   }
@@ -454,7 +506,7 @@ void checkKeypad() {
         cursorMenuSub += 1;
       }
       else if (c == '*') {
-        if (cursorMenu == 0 && cursorMenu == 0) {
+        if (cursorMenu == 0 && cursorMenuSub == 0) {
           tmp = BOARD_NAME;
 
           if (tmp.length() > 16) {
@@ -466,6 +518,32 @@ void checkKeypad() {
           
           lcdMode = 11;
         }
+        else if (cursorMenu == 2 && cursorMenuSub == 0) {
+          int a = (int) HEATER_MIN;
+          int b = ((int) (HEATER_MIN * 100) % 100);
+          tmp = (a < 10 ? "0" + String(a) : String(a)) + "." + (b < 10 ? "0" + String(b) : String(b));
+         
+          lcdMode = 31;
+        }
+        else if (cursorMenu == 2 && cursorMenuSub == 1) {
+          int a = (int) FILTER_MAX;
+          int b = ((int) (FILTER_MAX * 100) % 100);
+          tmp = (a < 10 ? "0" + String(a) : String(a)) + "." + (b < 10 ? "0" + String(b) : String(b));
+         
+          lcdMode = 32;
+        }
+        else if (cursorMenu == 2 && cursorMenuSub == 2) {
+          tmp = HEATER_MODE;
+         
+          lcdMode = 33;
+        }
+        else if (cursorMenu == 2 && cursorMenuSub == 3) {
+          tmp = FILTER_MODE;
+         
+          lcdMode = 34;
+        }
+        
+        chtmp = tmp[0];
       }
     }
     else if (lcdMode == 11) {
@@ -732,31 +810,7 @@ void checkKeypad() {
         }
 
       }
-      else if (c == 'B') {
-         tmp[indexEdit] = chtmp;
-         
-         frame = 0;
-         
-        if (indexEdit > 0) {
-          indexEdit--;
-
-          if (tmp.length() - indexEdit > 16) {
-              en = indexEdit + 16;
-            }
-            else {
-               en = tmp.length();
-            }
-
-            indexInButton = -1;
-        }
-
-      } else if (c == 'D') {
-         Serial.print(tmp);
-         Serial.print(" ");
-         Serial.print(indexEdit);
-         Serial.print(" ");
-         Serial.print(tmp[indexEdit]);
-         
+      else if (c == 'D') {
          tmp.remove(indexEdit, 1);
          chtmp = tmp[indexEdit];
          if (tmp.length() - 1 < indexEdit) {
@@ -766,13 +820,118 @@ void checkKeypad() {
 
          lastButton = -1;
          indexInButton = -1;
+      }
+    }
+    else if (lcdMode == 31 || lcdMode == 32) {
+      if (c == '*') {
+        if (tmp[0] == '~')
+          tmp[0] = chtmp;
+        if (tmp[1] == '~')
+          tmp[1] = chtmp;
+        if (tmp[3] == '~')
+          tmp[3] = chtmp;
+        if (tmp[4] == '~')
+          tmp[4] = chtmp;
+          
+        int ia = tmp.toInt();
+        int ib = ((int) (tmp.toFloat() * 100)) % 100;
 
-         Serial.print(" ");
-         Serial.print(tmp);
-         Serial.print(" ");
-         Serial.println(indexEdit);
+        if (lcdMode == 31) {
+          EEPROM.write(3, ia);
+          EEPROM.write(4, ib);
+          HEATER_MIN = EEPROM.read(3) + (EEPROM.read(4) / 100.0);
+        }
+        else if (lcdMode == 32) {
+          EEPROM.write(5, ia);
+          EEPROM.write(6, ib);
+          FILTER_MAX = EEPROM.read(5) + (EEPROM.read(6) / 100.0);
+        }
+        
+        tmp = "";
+        indexEdit = 0;
+        en = 0;
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+      }
+      else if (c == '#') {
+        
+        tmp = "";
+        indexEdit = 0;
+        en = 0;
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+      }
+      else if (c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9' || c == '0') {
+        tmp[indexEdit] = c;
+        if (indexEdit < 4) {
+          if (indexEdit == 1) {
+            indexEdit += 2;
+          }
+          else {
+            indexEdit++;
+          }
+        }
+        chtmp = tmp[indexEdit];
+      }
+      else if (c == 'A') {
+        tmp[indexEdit] = chtmp;
+        if (indexEdit < 4) {
+          if (indexEdit == 1) {
+            indexEdit += 2;
+          }
+          else {
+            indexEdit++;
+          }
+        }
+        chtmp = tmp[indexEdit];
+      }
+      else if (c == 'B') {
+        tmp[indexEdit] = chtmp;
+        if (indexEdit != 0) {
+          if (indexEdit == 3) {
+            indexEdit -= 2;
+          }
+          else {
+            indexEdit--;
+          }
+        }
+        chtmp = tmp[indexEdit];
+      }
+      
+    }
+    else if (lcdMode == 33 || lcdMode == 34) {
+      if (c == '*') {
+        int ia = tmp.toInt();
 
-         
+        if (lcdMode == 33) {
+          EEPROM.write(1, ia);
+          HEATER_MODE = EEPROM.read(1);
+        }
+        else if (lcdMode == 34) {
+          EEPROM.write(2, ia);
+          FILTER_MODE = EEPROM.read(2);
+        }
+        
+        tmp = "";
+        indexEdit = 0;
+        
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+      }
+      else if (c == '#') {
+        tmp = "";
+        indexEdit = 0;
+        
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+      }
+      else if (c == '0' || c == '1') {
+        chtmp = c;
+        tmp[0] = c;
       }
     }
     
