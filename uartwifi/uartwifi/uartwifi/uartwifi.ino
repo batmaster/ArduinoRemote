@@ -75,25 +75,29 @@ int WIFI_MODE;
 String WIFI_SSID;
 String WIFI_PASSWORD;
 String BOARD_NAME;
+String STATIC_IP;
+int PORT;
 
 
 
 #include <EEPROM.h>
 // EEPROM
-//  0            HAS_SET 0 set, 255 not set (255)
-//  1            HEATER_MODE 0 auto, 1 manual (0)
-//  2            FILTER_MODE 0 auto, 1 manual (0)
-//  3            HEATER_MIN:2 (25)
-//  4            (0)
-//  5            FILTER_MAX:2 (27)
-//  6            (0)
-//  7            WIFI_MODE 1 station, 2 ap, 3 both (2)
-//  8            WIFI_SSID:k
-//  8+k          255
-//  8+k+1        WIFI_PASSWORD:l
-//  8+k+1+l      255
-//  8+k+1+l+1    BOARD_NAME:m
-//  8+k+1+l+1+m  255
+//  0               HAS_SET 0 set, 255 not set (255)
+//  1               HEATER_MODE 0 auto, 1 manual (0)
+//  2               FILTER_MODE 0 auto, 1 manual (0)
+//  3               HEATER_MIN:2 (25)
+//  4               (0)
+//  5               FILTER_MAX:2 (27)
+//  6               (0)
+//  7               WIFI_MODE 1 station, 2 ap, 3 both (2)
+//  8               WIFI_SSID:k
+//  8+k             255
+//  8+k+1           WIFI_PASSWORD:l
+//  8+k+1+l         255
+//  8+k+1+l+1       BOARD_NAME:m
+//  8+k+1+l+1+m     255
+//  8+k+1+l+1+m+1   STATIC_IP:4
+//  8+k+1+l+1+m+1+4 PORT:
 
 // ดึงค่าตัวแปรพื้นฐานจากหน่วยความจำ
 int k = 0;
@@ -133,6 +137,10 @@ void getBased() {
     BOARD_NAME += (char) i;
     m++;
   }
+
+  int ipi = 8+k+1+l+1+m+1;
+  STATIC_IP = String(EEPROM.read(ipi + 1)) + "." + String(EEPROM.read(ipi + 2)) + "." + String(EEPROM.read(ipi + 3)) + "." + String(EEPROM.read(ipi + 4));
+  PORT = (EEPROM.read(ipi + 5) * 256) + EEPROM.read(ipi + 6);
   
   Serial.println(HEATER_MODE);
   Serial.println(FILTER_MODE);
@@ -142,6 +150,8 @@ void getBased() {
   Serial.println(WIFI_SSID);
   Serial.println(WIFI_PASSWORD);
   Serial.println(BOARD_NAME);
+  Serial.println(STATIC_IP);
+  Serial.println(PORT);
 }
 
 void resetBased() {
@@ -164,7 +174,14 @@ void resetBased() {
   for (int aa = 0; aa < 26; aa++) {
     EEPROM.write(14 + aa, 65 + aa);
   }
-//  EEPROM.write(15, 255);
+  EEPROM.write(13 + 25, 255);
+  
+  EEPROM.write(13 + 27, 0);
+  EEPROM.write(13 + 28, 0);
+  EEPROM.write(13 + 29, 0);
+  EEPROM.write(13 + 30, 0);
+  EEPROM.write(13 + 31, 31);
+  EEPROM.write(13 + 32, 145);
   
   //  EEPROM.write(0, 255);
   //  EEPROM.write(1, 255);
@@ -536,6 +553,11 @@ void checkKeypad() {
           tmp = HEATER_MODE;
          
           lcdMode = 33;
+        }
+        else if (cursorMenu == 2 && cursorMenuSub == 3) {
+          tmp = FILTER_MODE;
+         
+          lcdMode = 34;
         }
         else if (cursorMenu == 2 && cursorMenuSub == 3) {
           tmp = FILTER_MODE;
