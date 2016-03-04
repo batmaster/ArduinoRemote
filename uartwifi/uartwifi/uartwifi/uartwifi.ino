@@ -89,7 +89,7 @@ int PORT;
 //  4               (0)
 //  5               FILTER_MAX:2 (27)
 //  6               (0)
-//  7               WIFI_MODE 1 station, 2 ap, 3 both (2)
+//  7               WIFI_MODE 1 station, 2 access point, 3 both (2)
 //  8               WIFI_SSID:k
 //  8+k             255
 //  8+k+1           WIFI_PASSWORD:l
@@ -139,7 +139,15 @@ void getBased() {
   }
 
   int ipi = 8+k+1+l+1+m+1;
-  STATIC_IP = String(EEPROM.read(ipi + 1)) + "." + String(EEPROM.read(ipi + 2)) + "." + String(EEPROM.read(ipi + 3)) + "." + String(EEPROM.read(ipi + 4));
+  int ip1 = EEPROM.read(ipi + 1);
+  int ip2 = EEPROM.read(ipi + 2);
+  int ip3 = EEPROM.read(ipi + 3);
+  int ip4 = EEPROM.read(ipi + 4);
+  STATIC_IP = (ip1 < 10 ? "00" + String(ip1) : (ip1 < 100 ? "0" + String(ip1) : String(ip1))) + "."
+  + (ip2 < 10 ? "00" + String(ip2) : (ip2 < 100 ? "0" + String(ip2) : String(ip2))) + "." 
+  + (ip3 < 10 ? "00" + String(ip3) : (ip3 < 100 ? "0" + String(ip3) : String(ip3))) + "." 
+  + (ip4 < 10 ? "00" + String(ip4) : (ip4 < 100 ? "0" + String(ip4) : String(ip4)));
+  
   PORT = (EEPROM.read(ipi + 5) * 256) + EEPROM.read(ipi + 6);
   
   Serial.println(HEATER_MODE);
@@ -244,7 +252,7 @@ String menuSub[][7] = {
   {"1.1 Board Name"},
   {"2.1 Feed Now !"},
   {"3.1 Heater Min", "3.2 Filter Max", "3.3 Heater Mode", "3.4 Filter Mode"},
-  {"4.1 Internet Info.", "4.2 Intranet Info", "4.3 Set Mode", "4.4 Set SSID", "4.5 Password", "4.6 Set Static IP", "4.7 Set Port"},
+  {"4.1 Internet Info", "4.2 Intranet Info", "4.3 Set Mode", "4.4 Set SSID", "4.5 Password", "4.6 Set Static IP", "4.7 Set Port"},
   {"5.1 Confirm !"},
   {"6.1 Confirm !"}
 };
@@ -459,6 +467,58 @@ void showLCD() {
 
     frame++;
   }
+  else if (lcdMode == 43) {
+    if (frame < 0.25*frameSec) {
+      blink = 0;
+    }
+    else if (frame < 0.5*frameSec) {
+      blink = 1;
+    }
+    else {
+      frame = 0;
+    }
+    
+    if (blink == 0) {
+      if (tmp[indexEdit] != '~')
+        chtmp = tmp[indexEdit];
+      tmp[indexEdit] = '~';
+    }
+    else {
+      tmp[indexEdit] = chtmp;
+    }
+    lcd.setCursor(0, 0);
+    lcd.print(tmp);
+    lcd.setCursor(0, 1);
+    lcd.print("1Sta  2AP  3Both");
+    
+    frame++;
+  }
+  else if (lcdMode == 46) {
+    if (frame < 0.25*frameSec) {
+      blink = 0;
+    }
+    else if (frame < 0.5*frameSec) {
+      blink = 1;
+    }
+    else {
+      frame = 0;
+    }
+    
+    if (blink == 0) {
+      if (tmp[indexEdit] != '~')
+        chtmp = tmp[indexEdit];
+      tmp[indexEdit] = '~';
+    }
+    else {
+      tmp[indexEdit] = chtmp;
+    }
+    lcd.setCursor(0, 0);
+    lcd.print(tmp);
+    lcd.setCursor(0, 1);
+    lcd.print("< A  B >   del D");
+    
+    frame++;
+  }
 }
 
 
@@ -559,11 +619,32 @@ void checkKeypad() {
          
           lcdMode = 34;
         }
-        else if (cursorMenu == 2 && cursorMenuSub == 3) {
-          tmp = FILTER_MODE;
+        else if (cursorMenu == 3 && cursorMenuSub == 2) {
+          tmp = WIFI_MODE;
          
-          lcdMode = 34;
+          lcdMode = 43;
         }
+        else if (cursorMenu == 3 && cursorMenuSub == 3) {
+          tmp = WIFI_SSID;
+         
+          lcdMode = 44;
+        }
+        else if (cursorMenu == 3 && cursorMenuSub == 4) {
+          tmp = WIFI_PASSWORD;
+         
+          lcdMode = 45;
+        }
+        else if (cursorMenu == 3 && cursorMenuSub == 5) {
+          tmp = STATIC_IP;
+         
+          lcdMode = 46;
+        }
+        else if (cursorMenu == 3 && cursorMenuSub == 6) {
+          tmp = PORT;
+         
+          lcdMode = 47;
+        }
+        
         
         chtmp = tmp[0];
       }
@@ -925,6 +1006,9 @@ void checkKeypad() {
     }
     else if (lcdMode == 33 || lcdMode == 34) {
       if (c == '*') {
+        if (tmp[0] == '~')
+          tmp[0] = chtmp;
+          
         int ia = tmp.toInt();
 
         if (lcdMode == 33) {
@@ -937,7 +1021,6 @@ void checkKeypad() {
         }
         
         tmp = "";
-        indexEdit = 0;
         
         blink = 0;
         frame = 0;
@@ -956,6 +1039,146 @@ void checkKeypad() {
         tmp[0] = c;
       }
     }
+    else if (lcdMode == 43) {
+      if (c == '*') {
+        if (tmp[0] == '~')
+          tmp[0] = chtmp;
+          
+        int ia = tmp.toInt();
+
+          EEPROM.write(7, ia);
+          WIFI_MODE = EEPROM.read(7);
+        
+        tmp = "";
+        
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+      }
+      else if (c == '#') {
+        tmp = "";
+        
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+      }
+      else if (c == '1' || c == '2' || c == '3') {
+        chtmp = c;
+        tmp[0] = c;
+      }
+    }
+   else if (lcdMode == 44 || lcdMode == 45) {
+    
+   }
+   else if (lcdMode == 46) {
+    if (c == '*') {
+        if (tmp[0] == '~')
+          tmp[0] = chtmp;
+        if (tmp[1] == '~')
+          tmp[1] = chtmp;
+        if (tmp[2] == '~')
+          tmp[2] = chtmp;
+          if (tmp[4] == '~')
+          tmp[4] = chtmp;
+        if (tmp[5] == '~')
+          tmp[5] = chtmp;
+        if (tmp[6] == '~')
+          tmp[6] = chtmp;
+          if (tmp[8] == '~')
+          tmp[8] = chtmp;
+        if (tmp[9] == '~')
+          tmp[9] = chtmp;
+        if (tmp[10] == '~')
+          tmp[10] = chtmp;
+          if (tmp[12] == '~')
+          tmp[12] = chtmp;
+        if (tmp[13] == '~')
+          tmp[13] = chtmp;
+        if (tmp[14] == '~')
+          tmp[14] = chtmp;
+        
+          
+        int ip1 = tmp.substring(0, 3).toInt();
+        int ip2 = tmp.substring(4, 7).toInt();
+        int ip3 = tmp.substring(8, 11).toInt();
+        int ip4 = tmp.substring(12, 15).toInt();
+
+          int ipi = 8+k+1+l+1+m+1;
+          EEPROM.write(ipi + 1, ip1);
+          EEPROM.write(ipi + 2, ip2);
+          EEPROM.write(ipi + 3, ip3);
+          EEPROM.write(ipi + 4, ip4);
+        STATIC_IP = (ip1 < 10 ? "00" + String(ip1) : (ip1 < 100 ? "0" + String(ip1) : String(ip1))) + "."
+  + (ip2 < 10 ? "00" + String(ip2) : (ip2 < 100 ? "0" + String(ip2) : String(ip2))) + "." 
+  + (ip3 < 10 ? "00" + String(ip3) : (ip3 < 100 ? "0" + String(ip3) : String(ip3))) + "." 
+  + (ip4 < 10 ? "00" + String(ip4) : (ip4 < 100 ? "0" + String(ip4) : String(ip4)));
+        
+        tmp = "";
+        indexEdit = 0;
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+    }
+    else if (c == '#') {
+      tmp = "";
+        indexEdit = 0;
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+    }
+    else if (c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9' || c == '0') {
+      chtmp = c;
+      tmp[indexEdit] = c;
+      
+      if (indexEdit < 14) {
+          if (indexEdit == 2 || indexEdit == 6 || indexEdit == 10) {
+            indexEdit += 2;
+          }
+          else {
+            indexEdit++;
+          }
+        }
+    }
+    else if (c == 'A') {
+      tmp[indexEdit] = chtmp;
+        if (indexEdit < 14) {
+          if (indexEdit == 2 || indexEdit == 6 || indexEdit == 10) {
+            indexEdit += 2;
+          }
+          else {
+            indexEdit++;
+          }
+        }
+        chtmp = tmp[indexEdit];
+    }
+    else if (c == 'B') {
+      tmp[indexEdit] = chtmp;
+        if (indexEdit != 0) {
+          if (indexEdit == 5 || indexEdit == 8 || indexEdit == 12) {
+            indexEdit -= 2;
+          }
+          else {
+            indexEdit--;
+          }
+        }
+        chtmp = tmp[indexEdit];
+    }
+    else if (c == 'D') {
+      tmp[indexEdit] = '0';
+      if (indexEdit != 0) {
+          if (indexEdit == 5 || indexEdit == 8 || indexEdit == 12) {
+            indexEdit -= 2;
+          }
+          else {
+            indexEdit--;
+          }
+        chtmp = tmp[indexEdit];
+        }
+    }
+   }
+   else if (lcdMode == 47) {
+    
+   }
     
   }
 }
