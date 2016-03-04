@@ -76,7 +76,7 @@ String WIFI_SSID;
 String WIFI_PASSWORD;
 String BOARD_NAME;
 String STATIC_IP;
-int PORT;
+String PORT;
 
 
 
@@ -147,8 +147,14 @@ void getBased() {
   + (ip2 < 10 ? "00" + String(ip2) : (ip2 < 100 ? "0" + String(ip2) : String(ip2))) + "." 
   + (ip3 < 10 ? "00" + String(ip3) : (ip3 < 100 ? "0" + String(ip3) : String(ip3))) + "." 
   + (ip4 < 10 ? "00" + String(ip4) : (ip4 < 100 ? "0" + String(ip4) : String(ip4)));
-  
-  PORT = (EEPROM.read(ipi + 5) * 256) + EEPROM.read(ipi + 6);
+
+      int k = EEPROM.read(ipi + 5);
+      long p = 0;
+      for (int i = 0; i < k; i++) {
+        p += 256;
+      }
+      p += EEPROM.read(ipi + 6);
+      PORT = (p < 10 ? "0000" + String(p) : (p < 100 ? "000" + String(p) : (p < 1000 ? "00" + String(p) : (p < 10000 ? "0" + String(p) : String(p)))));
   
   Serial.println(HEATER_MODE);
   Serial.println(FILTER_MODE);
@@ -494,6 +500,32 @@ void showLCD() {
     frame++;
   }
   else if (lcdMode == 46) {
+    if (frame < 0.25*frameSec) {
+      blink = 0;
+    }
+    else if (frame < 0.5*frameSec) {
+      blink = 1;
+    }
+    else {
+      frame = 0;
+    }
+    
+    if (blink == 0) {
+      if (tmp[indexEdit] != '~')
+        chtmp = tmp[indexEdit];
+      tmp[indexEdit] = '~';
+    }
+    else {
+      tmp[indexEdit] = chtmp;
+    }
+    lcd.setCursor(0, 0);
+    lcd.print(tmp);
+    lcd.setCursor(0, 1);
+    lcd.print("< A  B >   del D");
+    
+    frame++;
+  }
+  else if (lcdMode == 47) {
     if (frame < 0.25*frameSec) {
       blink = 0;
     }
@@ -1177,7 +1209,85 @@ void checkKeypad() {
     }
    }
    else if (lcdMode == 47) {
-    
+    if (c == '*') {
+      if (tmp[0] == '~')
+          tmp[0] = chtmp;
+        if (tmp[1] == '~')
+          tmp[1] = chtmp;
+        if (tmp[2] == '~')
+          tmp[2] = chtmp;
+        if (tmp[3] == '~')
+          tmp[3] = chtmp;
+        if (tmp[4] == '~')
+          tmp[4] = chtmp;
+
+      if (tmp.toInt() > 65535) {
+        tmp = "08081";
+      }
+          
+      int p1 = tmp.toInt() / 256;
+      int p2 = tmp.toInt() % 256;
+      Serial.println(" ");
+      Serial.println(tmp.toInt());
+      Serial.println(p1);
+      Serial.println(p2);
+
+      int ipi = 8+k+1+l+1+m+1;
+      EEPROM.write(ipi + 5, p1);
+      EEPROM.write(ipi + 6, p2);
+
+      int k = EEPROM.read(ipi + 5);
+      long p = 0;
+      for (int i = 0; i < k; i++) {
+        p += 256;
+      }
+      p += EEPROM.read(ipi + 6);
+      PORT = (p < 10 ? "0000" + String(p) : (p < 100 ? "000" + String(p) : (p < 1000 ? "00" + String(p) : (p < 10000 ? "0" + String(p) : String(p)))));
+
+      tmp = "";
+        indexEdit = 0;
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+    }
+    else if (c == '#') {
+        tmp = "";
+        indexEdit = 0;
+        blink = 0;
+        frame = 0;
+        lcdMode = 2;
+    }
+    else if (c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9' || c == '0') {
+      tmp[indexEdit] = c;
+      
+      if (indexEdit < 4) {
+            indexEdit++;
+        }
+        
+      chtmp = c;
+    }
+    else if (c == 'A') {
+      tmp[indexEdit] = chtmp;
+        if (indexEdit < 4) {
+            indexEdit++;
+        }
+        chtmp = tmp[indexEdit];
+    }
+    else if (c == 'B') {
+      tmp[indexEdit] = chtmp;
+        if (indexEdit != 0) {
+          
+            indexEdit--;
+        }
+        chtmp = tmp[indexEdit];
+    }
+    else if (c == 'D') {
+      tmp[indexEdit] = '0';
+      if (indexEdit != 0) {
+            indexEdit--;
+        chtmp = tmp[indexEdit];
+       }
+    }
    }
     
   }
