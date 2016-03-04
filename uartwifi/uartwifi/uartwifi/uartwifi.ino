@@ -1,3 +1,4 @@
+#include <avr/wdt.h>
 #include <stdio.h>
 
 // นำเข้าไลบรารี่สำหรับพวกวัดอุณหภูมิ
@@ -105,8 +106,8 @@ int l = 0;
 int m = 0;
 
 void getBased() {
-  //  if (EEPROM.read(0) == 255)
-  resetBased();
+  if (EEPROM.read(0) == 255)
+    resetBased();
   
   HEATER_MODE = EEPROM.read(1);
   FILTER_MODE = EEPROM.read(2);
@@ -169,6 +170,9 @@ void getBased() {
 }
 
 void resetBased() {
+  lcd.setCursor(0, 0);
+  lcd.print("resetting...");
+  
   EEPROM.write(0, 0);
   EEPROM.write(1, 0);
   EEPROM.write(2, 0);
@@ -196,6 +200,10 @@ void resetBased() {
   EEPROM.write(13 + 30, 0);
   EEPROM.write(13 + 31, 31);
   EEPROM.write(13 + 32, 145);
+
+  delay(500);
+  lcd.setCursor(0, 0);
+  lcd.print("done");
   
   //  EEPROM.write(0, 255);
   //  EEPROM.write(1, 255);
@@ -311,8 +319,8 @@ void loop() {
   //   checkTemp(0);
   //    checkTemp(1);
   // checkTemp(2);
-  
-  //    checkHTTP();
+      
+      checkHTTP();
   
   //    ping();
   
@@ -473,6 +481,14 @@ void showLCD() {
 
     frame++;
   }
+  else if (lcdMode == 41) {
+    lcd.setCursor(0, 0);
+    lcd.print(INTERNET_IP + ":" + PORT);
+  }
+  else if (lcdMode == 42) {
+    lcd.setCursor(0, 0);
+    lcd.print(INTRANET_IP + ":" + PORT);
+  }
   else if (lcdMode == 43) {
     if (frame < 0.25*frameSec) {
       blink = 0;
@@ -551,6 +567,27 @@ void showLCD() {
     
     frame++;
   }
+  else if (lcdMode == 51) {
+    
+    resetBased();
+    delay(500);
+    lcd.setCursor(0, 0);
+    lcd.print("rebooting...");
+    wdt_enable(WDTO_1S);
+    
+    while (true) {
+      
+    }
+  }
+  else if (lcdMode == 61) {
+    lcd.setCursor(0, 0);
+    lcd.print("rebooting...");
+    wdt_enable(WDTO_2S);
+    
+    while (true) {
+      
+    }
+  }
 }
 
 
@@ -615,6 +652,7 @@ void checkKeypad() {
         cursorMenuSub += 1;
       }
       else if (c == '*') {
+        // route
         if (cursorMenu == 0 && cursorMenuSub == 0) {
           tmp = BOARD_NAME;
 
@@ -626,6 +664,9 @@ void checkKeypad() {
           }
           
           lcdMode = 11;
+        }
+        else if (cursorMenu == 1 && cursorMenuSub == 0) {
+          lcdMode = 21;
         }
         else if (cursorMenu == 2 && cursorMenuSub == 0) {
           int a = (int) HEATER_MIN;
@@ -650,6 +691,12 @@ void checkKeypad() {
           tmp = FILTER_MODE;
          
           lcdMode = 34;
+        }
+        else if (cursorMenu == 1 && cursorMenuSub == 0) {
+          lcdMode = 41;
+        }
+        else if (cursorMenu == 1 && cursorMenuSub == 0) {
+          lcdMode = 42;
         }
         else if (cursorMenu == 3 && cursorMenuSub == 2) {
           tmp = WIFI_MODE;
@@ -676,19 +723,28 @@ void checkKeypad() {
          
           lcdMode = 47;
         }
-        
+        else if (cursorMenu == 4 && cursorMenuSub == 0) {
+          lcdMode = 51;
+        }
+        else if (cursorMenu == 5 && cursorMenuSub == 0) {
+          lcdMode = 61;
+        }
         
         chtmp = tmp[0];
       }
     }
     else if (lcdMode == 11) {
+      if (tmp[tmp.length() - 1] != ' ') {
+        tmp = tmp + " ";
+      }
       if (c == '*') {
         if (blink == 0)
            tmp[indexEdit] = chtmp;
+        
+        tmp.trim();
         BOARD_NAME = tmp;
+        
         tmp = "";
-        // setBOARD_NAME();
-        Serial.println(BOARD_NAME);
         lastButton = -1;
         indexInButton = -1;
         indexEdit = 0;
@@ -1227,10 +1283,6 @@ void checkKeypad() {
           
       int p1 = tmp.toInt() / 256;
       int p2 = tmp.toInt() % 256;
-      Serial.println(" ");
-      Serial.println(tmp.toInt());
-      Serial.println(p1);
-      Serial.println(p2);
 
       int ipi = 8+k+1+l+1+m+1;
       EEPROM.write(ipi + 5, p1);
@@ -1288,6 +1340,9 @@ void checkKeypad() {
         chtmp = tmp[indexEdit];
        }
     }
+   }
+   else if (lcdMode == 61) {
+    
    }
     
   }
@@ -1362,6 +1417,9 @@ void checkTemp(int index) {
 // ตั้งค่าโมดูลไวไฟ ยุ่งยางมาก
 // #ไม่ต้องถามมาก เอามาจากเน็ต
 void setHTTP(String ssid, String pass) {
+  lcd(0, 0);
+  lcd.print("connecting...")
+  
   Serial.println("1=========================");
   sendCommand("AT+RST\r\n",2000,DEBUG); // reset module
   delay(2000);
