@@ -7,6 +7,7 @@ mysql_select_db('arduino')or die(mysql_error());
 mysql_query("SET NAMES UTF8");
 
 
+// board ping
 if (isset($_GET["bid"])) {
     $bid = $_GET["bid"];
     $ip = $_GET["ip"];
@@ -16,6 +17,7 @@ if (isset($_GET["bid"])) {
     mysql_query($sql);
     echo 200;
 }
+// get all lost boards
 else if (isset($_GET["lost5min"])) {
     $sql = "SELECT * FROM ping WHERE date < NOW() - INTERVAL 5 MINUTE";
     $res = mysql_query($sql);
@@ -30,6 +32,7 @@ else if (isset($_GET["lost5min"])) {
     mysql_close();
 
 }
+// otherwise, get 10 ping logs if `sql` not provided
 else {
     $sql = "SELECT * FROM ping ORDER BY id DESC LIMIT 10";
     if (isset($_POST["sql"]))
