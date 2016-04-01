@@ -10,12 +10,12 @@ mysql_query("SET NAMES UTF8");
 // board ping
 if (isset($_GET["bid"])) {
     $bid = $_GET["bid"];
-    $ip = $_GET["ip"];
+    $ip = $_SERVER['REMOTE_ADDR'];
     $port = $_GET["port"];
 
     $sql = "INSERT INTO ping (bid, ip, port, date) VALUES ('$bid', '$ip', '$port', NOW()) ON DUPLICATE KEY UPDATE ip = '$ip', port = '$port', date = NOW()";
     mysql_query($sql);
-    echo 200;
+    echo $ip;
 }
 // get all lost boards
 else if (isset($_GET["lost5min"])) {
