@@ -317,7 +317,7 @@ void tryServo() {
 ESP8266 wifi(Serial1);
 
 // ฟังก์ชั่นเริ่มต้นที่ arduino กำหนด
-// คือเรียกใช้แค่ครั้งเดียวตอนเปิดบอร์ด ตรงกันข้ามกับ loop()
+// คือเรียกใช้แค่ครั้งเดียวตอนเปิดบอร์ด
 void setup() {
 //  clearEEPROM();
 
@@ -332,78 +332,27 @@ void setup() {
     getBased();
     setLCD();
 //    setHTTP(WIFI_SSID, WIFI_PASSWORD);
-//    setHTTP("AP", "12345678");
-
-
-//          sendHTTP("188.166.180.204", 8888, "/arduinoping.php?bid=A0001&port=8080");
+    setHTTP("AP", "12345678");
+    
 //          sendHTTP("192.168.43.31", 8888, "/");
 
 //    setServo();
 //    setTemp();
 //    setRelays();
 
-
-
-    Serial.print("setup begin\r\n");
-
-    Serial.print("FW Version:");
-    Serial.println(wifi.getVersion().c_str());
-
-    if (wifi.setOprToStationSoftAP()) {
-        Serial.print("to station + softap ok\r\n");
-    } else {
-        Serial.print("to station + softap err\r\n");
-    }
-
-    if (wifi.joinAP(SSID, PASSWORD)) {
-        Serial.print("Join AP success\r\n");
-
-        Serial.print("IP:");
-        Serial.println( wifi.getLocalIP().c_str());       
-    } else {
-        Serial.print("Join AP failure\r\n");
-    }
-    
-    if (wifi.disableMUX()) {
-        Serial.print("single ok\r\n");
-    } else {
-        Serial.print("single err\r\n");
-    }
-    
-    Serial.print("setup end\r\n");
-
-
-    uint8_t buffer[1024] = {0};
-
-    if (wifi.createTCP("188.166.180.204", 8888)) {
-        Serial.print("create tcp ok\r\n");
-    } else {
-        Serial.print("create tcp err\r\n");
-    }
-
-    char *hello = "GET /arduinoping.php?bid=A0001&port=8080 HTTP/1.1\r\nHost: 188.166.180.204\r\nConnection: close\r\n\r\n";
-    wifi.send((const uint8_t*)hello, strlen(hello));
-
-    uint32_t len = wifi.recv(buffer, sizeof(buffer), 10000);
-    if (len > 0) {
-        Serial.print("Received:[");
-        for(uint32_t i = 0; i < len; i++) {
-            Serial.print((char)buffer[i]);
-        }
-        Serial.print("]\r\n");
-    }
-
-    if (wifi.releaseTCP()) {
-        Serial.print("release tcp ok\r\n");
-    } else {
-        Serial.print("release tcp err\r\n");
-    }
-    
-    while(1);
 }
+
+#define PING_LONG 6000
+int loop_runner = 0;
 
 // อีกฟังก์ชั่นที่ arduino กำหนดให้ต้องมี
 void loop() {
+    if (loop_runner % PING_LONG == 0) {
+      
+      sendHTTP(4, "188.166.180.204", 8888, "/arduinoping.php?bid=A0001&port=8080");
+      loop_runner = 1;
+    }
+    
     //  digitalWrite(RELAY_4, LOW);
     //  digitalWrite(RELAY_1, HIGH);
     //  Serial.println(1);
@@ -426,12 +375,10 @@ void loop() {
 
     checkHTTP();
 
-    //    ping();
-
     showLCD();
     checkKeypad();
 
-
+    loop_runner++;
 }
 
 
@@ -2129,62 +2076,100 @@ void checkTemp(int index) {
 void setHTTP(String ssid, String pass) {
     lcd.setCursor(0, 0);
     lcd.print("connecting...");
+    lcd.setCursor(0, 1);
+    lcd.print("mode: ");
+    lcd.print(WIFI_MODE);
 
-    Serial.println("1=========================");
-    sendCommand("AT+RST\r\n",2000,DEBUG); // reset module
-    delay(2000);
-    Serial.println("2=========================");
-    String CWMODE = "AT+CWMODE=";
-    CWMODE += WIFI_MODE;
-    CWMODE += "\r\n";
-    sendCommand(CWMODE,1000,DEBUG); // configure as access point
-    delay(1000);
-    Serial.println("3=========================");
-    sendCommand("AT+CWJAP=\"" + ssid + "\",\"" + pass + "\"\r\n",3000,DEBUG);
-    delay(8000);
-    Serial.println("4=========================");
-    delay(1000);
-    Serial.println("5=========================");
-    String x = sendCommand("AT+CIFSR\r\n",1000,DEBUG); // get ip address
+    Serial.print("setup begin\r\n");
+    
+    Serial.print("FW Version:");
+    Serial.println(wifi.getVersion().c_str());
+
+
+    uint32_t p = PORT.toInt();
+
     if (WIFI_MODE == 1) {
-        INTERNET_IP = splitString(x, '"', 1);
-        INTERNET_IP = splitString(INTERNET_IP, '"', 0);
-
-        INTERNET_MAC = splitString(x, '"', 3);
-        INTERNET_MAC = splitString(INTERNET_MAC, '"', 0);
+            if (wifi.setOprToStation()) {
+                Serial.print("to station ok\r\n");
+            } else {
+                Serial.print("to station err\r\n");
+            }
+        
+            if (wifi.joinAP(ssid, pass)) {
+                Serial.print("Join AP success\r\n");
+                Serial.print("IP: ");       
+                Serial.println(wifi.getLocalIP().c_str());
+            } else {
+                Serial.print("Join AP failure\r\n");
+            }
+            
+            if (wifi.disableMUX()) {
+                Serial.print("single ok\r\n");
+            } else {
+                Serial.print("single err\r\n");
+            }
+            
+            if (wifi.startTCPServer(p)) {
+                Serial.print("start tcp server ok\r\n");
+            } else {
+                Serial.print("start tcp server err\r\n");
+            }
+            
+            Serial.print("setup end\r\n");
+      
     }
     else if (WIFI_MODE == 2) {
-        INTRANET_IP = splitString(x, '"', 1);
-        INTRANET_IP = splitString(INTRANET_IP, '"', 0);
-
-        INTRANET_MAC = splitString(x, '"', 3);
-        INTRANET_MAC = splitString(INTRANET_MAC, '"', 0);
+            if (wifi.setOprToSoftAP()) {
+                Serial.print("to softap ok\r\n");
+            } else {
+                Serial.print("to softap err\r\n");
+            }
+            
+            if (wifi.disableMUX()) {
+                Serial.print("single ok\r\n");
+            } else {
+                Serial.print("single err\r\n");
+            }
+            
+            if (wifi.startTCPServer(p)) {
+                Serial.print("start tcp server ok\r\n");
+            } else {
+                Serial.print("start tcp server err\r\n");
+            }
+            
+            Serial.print("setup end\r\n");
     }
     else if (WIFI_MODE == 3) {
-        INTRANET_IP = splitString(x, '"', 1);
-        INTRANET_IP = splitString(INTRANET_IP, '"', 0);
-
-        INTRANET_MAC = splitString(x, '"', 3);
-        INTRANET_MAC = splitString(INTRANET_MAC, '"', 0);
-
-        INTERNET_IP = splitString(x, '"', 5);
-        INTERNET_IP = splitString(INTERNET_IP, '"', 0);
-
-        INTERNET_MAC = splitString(x, '"', 7);
-        INTERNET_MAC = splitString(INTERNET_MAC, '"', 0);
+            if (wifi.setOprToStationSoftAP()) {
+                Serial.print("to station + softap ok\r\n");
+            } else {
+                Serial.print("to station + softap err\r\n");
+            }
+         
+            if (wifi.joinAP(ssid, pass)) {
+                Serial.print("Join AP success\r\n");
+                Serial.print("IP: ");
+                Serial.println(wifi.getLocalIP().c_str());    
+            } else {
+                Serial.print("Join AP failure\r\n");
+            }
+            
+            if (wifi.enableMUX()) {
+                Serial.print("multiple ok\r\n");
+            } else {
+                Serial.print("multiple err\r\n");
+            }
+            
+            if (wifi.startTCPServer(p)) {
+                Serial.print("start tcp server ok\r\n");
+            } else {
+                Serial.print("start tcp server err\r\n");
+            }
+            
+            Serial.print("setup end\r\n");
+      
     }
 
-    delay(1000);
-    Serial.println("6=========================");
-    sendCommand("AT+CIPMUX=1\r\n",1000,DEBUG); // configure for multiple connections
-    delay(1000);
-    Serial.println("7=========================");
-    String CIPSERVER = "AT+CIPSERVER=1,";
-    CIPSERVER += PORT.toInt();
-    CIPSERVER += "\r\n";
-    sendCommand(CIPSERVER,1000,DEBUG); // turn on server on port 80
-    delay(1000);
-    Serial.println("8=========================");
 
 
     Serial.println("Server Ready");
@@ -2206,69 +2191,160 @@ String splitString(String data, char separator, int index) {
     return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
-void sendHTTP(String ipdomain, int port, String param) {
-    String startcommand = "AT+CIPSTART=4,\"TCP\",\"" + ipdomain + "\"," + port;
-    Serial1.println(startcommand);
-    Serial.println(startcommand);
+void sendHTTP(uint8_t mux_id, String ipdomain, int port, String param) {
+    uint8_t buffer[1024] = {0};
 
-    if (Serial1.find("Error")) {
-        Serial.println("error on start");
-        return;
+    if (wifi.createTCP(mux_id, ipdomain, port)) {
+        Serial.print("create tcp ok\r\n");
+    } else {
+        Serial.print("create tcp err\r\n");
+    }
+    
+    String tmp = "GET " + param + " HTTP/1.1\r\nHost: " + ipdomain + "\r\nConnection: close\r\n\r\n";
+    char *req = strdup(tmp.c_str());
+    wifi.send(mux_id, (const uint8_t*) req, strlen(req));
+
+    uint32_t len = wifi.recv(mux_id, buffer, sizeof(buffer), 10000);
+    if (len > 0) {
+        Serial.print("Received:[");
+        for(uint32_t i = 0; i < len; i++) {
+            Serial.print((char)buffer[i]);
+        }
+        Serial.print("]\r\n");
     }
 
-    String sendcommand = "GET " + param + " HTTP/1.1\r\n";//works for most cases
-    Serial.print(sendcommand);
-
-//    sendCIPData(4, sendcommand);
-
-    Serial1.print("AT+CIPSEND=4,");
-    Serial1.println(sendcommand.length());
-
-
-    //debug the command
-    Serial.print("AT+CIPSEND=4,");
-    Serial.println(sendcommand.length());
-
-    Serial.println("s 1");
-    while(Serial1.available())
-    {
-
-        // The esp has data so display its output to the serial window
-        char c = Serial1.read(); // read the next character.
-        Serial.print(c);
+    if (wifi.releaseTCP(mux_id)) {
+        Serial.print("release tcp ok\r\n");
+    } else {
+        Serial.print("release tcp err\r\n");
     }
-    Serial.println("fin 1");
-
-    delay(5000);
-    if(Serial1.find(">"))
-    {
-        Serial.println(">");
-    }else
-    {
-        Serial1.println("AT+CIPCLOSE");
-        Serial.println("connect timeout");
-        delay(1000);
-        return;
-    }
-
-    Serial.print("ok??");
-    Serial1.print(sendcommand);
-    Serial.println("yepp");
-
-    Serial.println("s 2");
-    while(Serial1.available())
-    {
-
-        // The esp has data so display its output to the serial window
-        char c = Serial1.read(); // read the next character.
-        Serial.print(c);
-    }
-    Serial.println("fin 2");
 }
 
 
 // เรียกค่าจากโมดูลไวไฟ แล้วเช็คว่ามันส่งอะไรมา
+
 void checkHTTP() {
+    // อ่าน
+    uint8_t buffer[256] = {0};
+    uint8_t mux_id;
+    uint32_t len = wifi.recv(&mux_id, buffer, sizeof(buffer), 100);
+    if (len > 0) {
+        Serial.print("Status:[");
+        Serial.print(wifi.getIPStatus().c_str());
+        Serial.println("]");
+        
+        Serial.print("Received from :");
+        Serial.print(mux_id);
+        Serial.print("[");
+        for(uint32_t i = 0; i < len; i++) {
+            Serial.print((char)buffer[i]);
+        }
+        Serial.print("]\r\n");
+        
+        // เตรียมตอบกลับ
+        String tmp = "";
+        for (int i = 12; i < len; i++) {
+            if (buffer[i] == 32)
+                break;
+                
+            tmp += (char) buffer[i];
+        }
+        String res = "";
+        if (tmp[0] == 'Z') {
+          // Z001*
+          // เปลี่ยนสถานะ relay 1, 2, 3, 4
+           if (tmp[1] != '*')
+               digitalWrite(RELAY_1, tmp[1]);
+           if (tmp[2] != '*')
+               digitalWrite(RELAY_2, tmp[2]);
+           if (tmp[3] != '*')
+               digitalWrite(RELAY_3, tmp[3]);
+           if (tmp[4] != '*')
+               digitalWrite(RELAY_4, tmp[4]);
+           
+           res += digitalRead(RELAY_1) == LOW ? "0" : "1";
+           res += digitalRead(RELAY_2) == LOW ? "0" : "1";
+           res += digitalRead(RELAY_3) == LOW ? "0" : "1";
+           res += digitalRead(RELAY_4) == LOW ? "0" : "1";
+        }
+        else if (tmp[0] == 'A') {
+          // A
+          // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
+                res += HEATER_MODE == 0 ? "1" : "0";
+                res += FILTER_MODE == 0 ? "1" : "0";
+                res += digitalRead(RELAY_1) == LOW ? "0" : "1";
+                res += digitalRead(RELAY_2) == LOW ? "0" : "1";
+
+                res += BOARD_NAME;
+                res += "-";
+                res += sensors.getTempCByIndex(0);
+        }
+        else if (tmp[0] == 'B') {
+                // B0011
+                // ตั้งค่า โหมด heater, filter และ relay 1, 2 และ
+                // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
+
+                if (tmp[1] == 1) {
+                    HEATER_MODE = 0;
+                }
+                else {
+                    HEATER_MODE = 1;
+                    digitalWrite(RELAY_1, tmp[3]);
+                }
+                
+                if (tmp[2] == 1) {
+                    FILTER_MODE = 0;
+                }
+                else {
+                    FILTER_MODE = 1;
+                    digitalWrite(RELAY_2, tmp[4]);
+                }
+                
+                setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
+
+                res += HEATER_MODE ? "1" : "0";
+                res += FILTER_MODE ? "1" : "0";
+                res += digitalRead(RELAY_1) == LOW ? "0" : "1";
+                res += digitalRead(RELAY_2) == LOW ? "0" : "1";
+
+                res += BOARD_NAME;
+                res += "-";
+                res += sensors.getTempCByIndex(0);
+          
+        }
+        else if (tmp[0] == 'C') {
+              feed();
+              res += "OK";
+        }
+
+        // ตอบกลับ
+        if(wifi.send(mux_id, (const uint8_t*) strdup(res.c_str()), res.length())) {
+            Serial.print("send back ok\r\n");
+        } else {
+            Serial.print("send back err\r\n");
+        }
+        
+        if (wifi.releaseTCP(mux_id)) {
+            Serial.print("release tcp ");
+            Serial.print(mux_id);
+            Serial.println(" ok");
+        } else {
+            Serial.print("release tcp");
+            Serial.print(mux_id);
+            Serial.println(" err");
+        }
+        
+        Serial.print("Status:[");
+        Serial.print(wifi.getIPStatus().c_str());
+        Serial.println("]");
+    }
+}
+
+void feed() {
+  
+}
+
+/*void checkHTTP() {
     if(Serial1.available()) // check if the esp is sending a message
     {
         if(Serial1.find("+IPD,"))
@@ -2375,6 +2451,7 @@ void checkHTTP() {
         }
     }
 }
+*/
 
 
 
