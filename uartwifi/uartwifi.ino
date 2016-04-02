@@ -342,7 +342,7 @@ void setup() {
 
 }
 
-#define PING_LONG 6000
+#define PING_LONG 3000
 int loop_runner = 0;
 
 // อีกฟังก์ชั่นที่ arduino กำหนดให้ต้องมี
@@ -2316,6 +2316,67 @@ void checkHTTP() {
               feed();
               res += "OK";
         }
+        else if (tmp[0] == 'D') {
+              res += HEATER_MODE;
+              res += "~";
+              res += FILTER_MODE;
+              res += "~";
+              res += HEATER_MIN;
+              res += "~";
+              res += FILTER_MAX;
+              res += "~";
+              res += WIFI_MODE;
+              res += "~";
+              res += WIFI_SSID;
+              res += "~";
+              res += WIFI_PASSWORD;
+              res += "~";
+              res += BOARD_NAME;
+              res += "~";
+              res += STATIC_IP;
+              res += "~";
+              res += PORT;
+        }
+        else if (tmp[0] == 'E') {
+          HEATER_MODE = ((int) tmp[1]) - 48;
+          FILTER_MODE = ((int) tmp[3]) - 48;
+          HEATER_MIN = splitString(tmp, '~', 2).toFloat();
+          FILTER_MAX = splitString(tmp, '~', 3).toFloat();
+          WIFI_MODE = splitString(tmp, '~', 4).toInt();
+          WIFI_SSID = splitString(tmp, '~', 5);
+          WIFI_PASSWORD = splitString(tmp, '~', 6);
+          BOARD_NAME = splitString(tmp, '~', 7);
+          STATIC_IP = splitString(tmp, '~', 8);
+          PORT = splitString(tmp, '~', 9);
+          setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
+          
+              res += HEATER_MODE;
+              res += "~";
+              res += FILTER_MODE;
+              res += "~";
+              res += HEATER_MIN;
+              res += "~";
+              res += FILTER_MAX;
+              res += "~";
+              res += WIFI_MODE;
+              res += "~";
+              res += WIFI_SSID;
+              res += "~";
+              res += WIFI_PASSWORD;
+              res += "~";
+              res += BOARD_NAME;
+              res += "~";
+              res += STATIC_IP;
+              res += "~";
+              res += PORT;
+        }
+
+        String httpHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n";
+        httpHeader += "Content-Length: ";
+        httpHeader += res.length();
+        httpHeader += "\r\n";
+        httpHeader +="Connection: close\r\n\r\n";
+        res = httpHeader + res + " ";
 
         // ตอบกลับ
         if(wifi.send(mux_id, (const uint8_t*) strdup(res.c_str()), res.length())) {
@@ -2342,238 +2403,5 @@ void checkHTTP() {
 
 void feed() {
   
-}
-
-/*void checkHTTP() {
-    if(Serial1.available()) // check if the esp is sending a message
-    {
-        if(Serial1.find("+IPD,"))
-        {
-            delay(1000); // wait for the serial buffer to fill up (read all the serial data)
-            // get the connection id so that we can then disconnect
-            int connectionId = Serial1.read()-48; // subtract 48 because the read() function returns
-            // the ASCII decimal value and 0 (the first decimal number) starts at 48
-
-            Serial1.find("relay=");
-            int r1 = (Serial1.read()-48);
-            Serial.println(r1);
-            if (r1 == 0 || r1 == 1 || r1 == -6) {
-                //  เอาไว้เทสการสั่งเปิดปิดรีเลย์แต่ละตัว
-                // ในแอป ไม่ได้ใช้นะ ใช้อันข้างล่างแทน
-                int r2 = (Serial1.read()-48);
-                int r3 = (Serial1.read()-48);
-                int r4 = (Serial1.read()-48);
-
-                // -6 = *
-                // A
-                if (r1 != -6) {
-                    digitalWrite(RELAY_1, r1);
-                }
-                if (r2 != -6) {
-                    digitalWrite(RELAY_2, r2);
-                }
-                if (r3 != -6) {
-                    digitalWrite(RELAY_3, r3);
-                }
-                if (r4 != -6) {
-                    digitalWrite(RELAY_4, r4);
-                }
-                String res = digitalRead(RELAY_1) == LOW ? "0" : "1";
-                res += digitalRead(RELAY_2) == LOW ? "0" : "1";
-                res += digitalRead(RELAY_3) == LOW ? "0" : "1";
-                res += digitalRead(RELAY_4) == LOW ? "0" : "1";
-                sendHTTPResponse(connectionId, res);
-            }
-            else if (r1 == 17) {
-                // 17 = A
-                // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
-                String res = HEATER_MODE == 0 ? "1" : "0";
-                res += FILTER_MODE == 0 ? "1" : "0";
-                res += digitalRead(RELAY_1) == LOW ? "0" : "1";
-                res += digitalRead(RELAY_2) == LOW ? "0" : "1";
-
-                res += BOARD_NAME;
-                res += "-";
-                res += sensors.getTempCByIndex(0);
-
-                sendHTTPResponse(connectionId, res);
-            }
-            else if (r1 == 18) {
-                // 18 = B
-                // B0011
-                // ตั้งค่า โหมด heater, filter และ relay 1, 2 และ
-                // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
-                int r2 = (Serial1.read()-48);
-                int r3 = (Serial1.read()-48);
-                int r4 = (Serial1.read()-48);
-                int r5 = (Serial1.read()-48);
-
-                if (r2 == 1) {
-                    HEATER_MODE = 0;
-                }
-                else {
-                    HEATER_MODE = 1;
-                    digitalWrite(RELAY_1, r4);
-                }
-                setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
-                
-
-                if (r3 == 1) {
-                    FILTER_MODE = 0;
-                }
-                else {
-                    FILTER_MODE = 1;
-                    digitalWrite(RELAY_2, r5);
-                }
-                setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
-
-                String res = HEATER_MODE ? "1" : "0";
-                res += FILTER_MODE ? "1" : "0";
-                res += digitalRead(RELAY_1) == LOW ? "0" : "1";
-                res += digitalRead(RELAY_2) == LOW ? "0" : "1";
-
-                res += BOARD_NAME;
-                res += "-";
-                res += sensors.getTempCByIndex(1);
-
-                sendHTTPResponse(connectionId, res);
-            }
-            else if (r1 == 19) {
-                // 19 = C
-                // C
-                // ให้อาหาร
-                int motorTime = 4000;
-                sendHTTPResponse(connectionId, String(motorTime));
-                digitalWrite(RELAY_3, LOW);
-                delay(motorTime);
-                digitalWrite(RELAY_3, HIGH);
-            }
-        }
-    }
-}
-*/
-
-
-
-
-
-
-// =================== ข้างล่างนี้ ก็อบมา มันมากับโค้ดไวไฟ =================== //
-
-
-
-
-/*
-* Name: sendHTTPResponse
-* Description: Function that sends HTTP 200, HTML UTF-8 response
-*/
-void sendHTTPResponse(int connectionId, String content)
-{
-
-    // build HTTP response
-    String httpResponse;
-    String httpHeader;
-    // HTTP Header
-    httpHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n";
-    httpHeader += "Content-Length: ";
-    httpHeader += content.length();
-    httpHeader += "\r\n";
-    httpHeader +="Connection: close\r\n\r\n";
-    httpResponse = httpHeader + content + " "; // There is a bug in this code: the last character of "content" is not sent, I cheated by adding this extra space
-    sendCIPData(connectionId,httpResponse);
-}
-
-/*
-* Name: sendCIPDATA
-* Description: sends a CIPSEND=<connectionId>,<data> command
-*
-*/
-void sendCIPData(int connectionId, String data)
-{
-    String cipSend = "AT+CIPSEND=";
-    cipSend += connectionId;
-    cipSend += ",";
-    cipSend +=data.length();
-    cipSend +="\r\n";
-    sendCommand(cipSend,1000,DEBUG);
-    sendData(data,1000,DEBUG);
-}
-
-/*
-* Name: sendCommand
-* Description: Function used to send data to Serial1.
-* Params: command - the data/command to send; timeout - the time to wait for a response; debug - print to Serial window?(true = yes, false = no)
-* Returns: The response from the Serial1 (if there is a reponse)
-*/
-String sendCommand(String command, const int timeout, boolean debug)
-{
-    String response = "";
-
-    Serial1.print(command); // send the read character to the Serial1
-
-    long int time = millis();
-
-    while( (time+timeout) > millis())
-    {
-        while(Serial1.available())
-        {
-
-            // The esp has data so display its output to the serial window
-            char c = Serial1.read(); // read the next character.
-            response+=c;
-        }
-    }
-
-    if(debug)
-    {
-        Serial.print(">");
-        Serial.print(response);
-        Serial.print("<");
-    }
-
-    return response;
-}
-
-/*
-* Name: sendData
-* Description: Function used to send data to Serial1.
-* Params: command - the data/command to send; timeout - the time to wait for a response; debug - print to Serial window?(true = yes, false = no)
-* Returns: The response from the Serial1 (if there is a reponse)
-*/
-String sendData(String command, const int timeout, boolean debug)
-{
-    String response = "";
-
-    int dataSize = command.length();
-    char data[dataSize];
-    command.toCharArray(data,dataSize);
-
-    Serial1.write(data,dataSize); // send the read character to the Serial1
-    if(debug)
-    {
-        Serial.println("\r\nvvvvvv HTTP Response From Arduino vvvvvv");
-        Serial.write(data,dataSize);
-        Serial.println("\r\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
-    }
-
-    long int time = millis();
-
-    while( (time+timeout) > millis())
-    {
-        while(Serial1.available())
-        {
-
-            // The esp has data so display its output to the serial window
-            char c = Serial1.read(); // read the next character.
-            response+=c;
-        }
-    }
-
-    if(debug)
-    {
-        Serial.print(response);
-    }
-
-    return response;
 }
 
