@@ -27,6 +27,7 @@ const int chipSelect = 48;
 
 
 // นำเข้าไลบรารี่ LCD
+// 4 ขา
 #include <Wire.h>
 #include <LCD.h>
 #include <LiquidCrystal_I2C.h>
@@ -35,6 +36,9 @@ const int chipSelect = 48;
 #define BACKLIGHT_PIN 3
 
 LiquidCrystal_I2C lcd(I2C_ADDR,2,1,0,4,5,6,7);
+//////// หลายขา LiquidCrystal lcd(รู4, 6, 11, 12, 13, 14);
+//#include <LiquidCrystal.h>
+//LiquidCrystal lcd(12, 11, 4, 5, 6, 7);
 
 
 // นำเข้าไลบรารี่ Keypad
@@ -103,7 +107,7 @@ double TEMP = 0;
 //  8+k+1+l+1       BOARD_NAME:m
 //  8+k+1+l+1+m     255
 //  8+k+1+l+1+m+1   STATIC_IP:4
-//  8+k+1+l+1+m+1+4 PORT:
+//  8+k+1+l+1+m+1+4 PORT:2
 
 
 // ดึงค่าตัวแปรพื้นฐานจากหน่วยความจำ
@@ -244,7 +248,7 @@ void resetBased() {
     lcd.setCursor(0, 0);
     lcd.print("resetting...");
 
-    setEEPROM(0, 0, 0, 25.00, 27.00, 2, "ssid", "password", "name", "0.0.0.0", "8081");
+    setEEPROM(0, 0, 0, 25.00, 30.00, 3, "ssid", "password", "A0000", "0.0.0.0", "8081");
 
     delay(500);
     lcd.setCursor(0, 0);
@@ -254,7 +258,7 @@ void resetBased() {
 }
 
 
-int frameSec = 100;
+int frameSec = 50;
 int frame = 0;
 int lcdMode = 0; // 0 = home, 1 = menu
 
@@ -293,7 +297,7 @@ String menuSub[][7] = {
 Servo myservo;
 
 void setServo() {
-    myservo.attach(12);
+    myservo.attach(13);
 }
 
 boolean j = false;
@@ -309,67 +313,46 @@ void tryServo() {
 
 #include "ESP8266.h"
 
-#define SSID        "AP"
-#define PASSWORD    "12345678"
-#define HOST_NAME   "www.google.co.th"
-#define HOST_PORT   (80)
-
 ESP8266 wifi(Serial1);
 
 // ฟังก์ชั่นเริ่มต้นที่ arduino กำหนด
 // คือเรียกใช้แค่ครั้งเดียวตอนเปิดบอร์ด
 void setup() {
 //  clearEEPROM();
+//  resetBased();
 
       // กำหนดความถี่ช่วงข้อมูลสำหรับรับเข้า ส่งออกข้อมูลผ่านหน้าจอ serial monitor
-    Serial.begin(9600);
+    Serial.begin(9600); //9600
       // กำหนดความถี่ช่วงข้อมูลสำหรับรับเข้า ส่งออกข้อมูลโมดูลไวไฟ
-    Serial1.begin(115200);
+    Serial1.begin(115200); //115200
     Serial.println("Booting...");
     
       // เรีกใช้ฟังก์ชั่นที่ชื่อขึ้นต้นด้วย set คือ กำหนดค่าพื้นฐานให้แต่ละโมดูล
     
     getBased();
     setLCD();
-//    setHTTP(WIFI_SSID, WIFI_PASSWORD);
-    setHTTP("AP", "12345678");
+    setHTTP(WIFI_SSID, WIFI_PASSWORD);
+//    setHTTP("AP", "12345678");
     
-//          sendHTTP("192.168.43.31", 8888, "/");
+    setServo();
+    setTemp();
+    setRelays();
 
-//    setServo();
-//    setTemp();
-//    setRelays();
+//    feed();
 
 }
 
-#define PING_LONG 3000
+#define PING_LONG 1000
 int loop_runner = 0;
-
+int r = 1;
 // อีกฟังก์ชั่นที่ arduino กำหนดให้ต้องมี
 void loop() {
     if (loop_runner % PING_LONG == 0) {
       
-      sendHTTP(4, "188.166.180.204", 8888, "/arduinoping.php?bid=A0001&port=8080");
+      sendHTTP(4, "188.166.180.204", 8888, "/arduinoping.php?bid=" + BOARD_NAME + "&port=" + PORT);
       loop_runner = 1;
     }
     
-    //  digitalWrite(RELAY_4, LOW);
-    //  digitalWrite(RELAY_1, HIGH);
-    //  Serial.println(1);
-    //  delay(500);
-    //  digitalWrite(RELAY_1, LOW);
-    //  digitalWrite(RELAY_2, HIGH);
-    //  Serial.println(2);
-    //  delay(500);
-    //  digitalWrite(RELAY_2, LOW);
-    //  digitalWrite(RELAY_3, HIGH);
-    //  Serial.println(3);
-    //  delay(500);
-    //  digitalWrite(RELAY_3, LOW);
-    //  digitalWrite(RELAY_4, HIGH);
-    //  Serial.println(4);
-    //  delay(500);
-
     //    checkTemp(1);
     // checkTemp(2);
 
@@ -388,21 +371,6 @@ int en = 0;
 
 int lastButton = -1;
 int indexInButton = -1;
-
-// เอาไว้ให้บอร์ดติดต่อกับ server ทุกๆช่วงเวลา
-/*void ping() {
-if (runner++ == 30000) {
-Serial.println("Connecting to Server...");
-//     // Make a HTTP request:
-//     Serial1.print("GET http://188.166.180.204:8888/arduinoping.php?bid=A0000&ip=118.175.112.32&port=8080");
-//     Serial1.println(" HTTP/1.1");
-//     Serial1.println("Host: batmastertest.com");
-//     Serial1.println();
-
-sendHTTP("188.166.180.204", 8888, "/arduinoping.php?bid=A0001&port=8080");
-}
-}*/
-
 
 int blink = 0;
 char chtmp = '_';
@@ -477,6 +445,10 @@ void showLCD() {
         lcd.print("< A  B >   del D");
 
         frame++;
+    }
+    else if (lcdMode == 11) {
+      lcd.setCursor(0, 0);
+      lcd.print("feeding");
     }
     else if (lcdMode == 31 || lcdMode == 32) {
         if (frame < 0.25*frameSec) {
@@ -1110,6 +1082,10 @@ void checkKeypad() {
                 lastButton = -1;
                 indexInButton = -1;
             }
+        }
+        else if (lcdMode == 21) {
+          feed();
+          lcdMode = 2;
         }
         else if (lcdMode == 31 || lcdMode == 32) {
             if (c == '*') {
@@ -2011,7 +1987,7 @@ void checkKeypad() {
 void setLCD() {
     // LCD เป็นแบบ 2 แถว 16 ตัวอักษร
     lcd.begin(16, 2);
-
+    // สำหรับ 4 ขา
     lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
     lcd.setBacklight(HIGH);
     lcd.home(); // ไปที่ตัวอักษรที่ 0 แถวที่ 1
@@ -2081,9 +2057,8 @@ void setHTTP(String ssid, String pass) {
     lcd.print(WIFI_MODE);
 
     Serial.print("setup begin\r\n");
-    
     Serial.print("FW Version:");
-    Serial.println(wifi.getVersion().c_str());
+//    Serial.println(wifi.getVersion().c_str());
 
 
     uint32_t p = PORT.toInt();
@@ -2103,16 +2078,22 @@ void setHTTP(String ssid, String pass) {
                 Serial.print("Join AP failure\r\n");
             }
             
-            if (wifi.disableMUX()) {
-                Serial.print("single ok\r\n");
+            if (wifi.enableMUX()) {
+                Serial.print("multiple ok\r\n");
             } else {
-                Serial.print("single err\r\n");
+                Serial.print("multiple err\r\n");
             }
             
             if (wifi.startTCPServer(p)) {
                 Serial.print("start tcp server ok\r\n");
             } else {
                 Serial.print("start tcp server err\r\n");
+            }
+
+            if (wifi.setTCPServerTimeout(10)) { 
+                Serial.print("set tcp server timout 10 seconds\r\n");
+            } else {
+                Serial.print("set tcp server timout err\r\n");
             }
             
             Serial.print("setup end\r\n");
@@ -2125,16 +2106,22 @@ void setHTTP(String ssid, String pass) {
                 Serial.print("to softap err\r\n");
             }
             
-            if (wifi.disableMUX()) {
-                Serial.print("single ok\r\n");
+            if (wifi.enableMUX()) {
+                Serial.print("multiple ok\r\n");
             } else {
-                Serial.print("single err\r\n");
+                Serial.print("multiple err\r\n");
             }
             
             if (wifi.startTCPServer(p)) {
                 Serial.print("start tcp server ok\r\n");
             } else {
                 Serial.print("start tcp server err\r\n");
+            }
+
+            if (wifi.setTCPServerTimeout(10)) { 
+                Serial.print("set tcp server timout 10 seconds\r\n");
+            } else {
+                Serial.print("set tcp server timout err\r\n");
             }
             
             Serial.print("setup end\r\n");
@@ -2165,13 +2152,45 @@ void setHTTP(String ssid, String pass) {
             } else {
                 Serial.print("start tcp server err\r\n");
             }
+
+            if (wifi.setTCPServerTimeout(10)) { 
+                Serial.print("set tcp server timout 10 seconds\r\n");
+            } else {
+                Serial.print("set tcp server timout err\r\n");
+            }
             
             Serial.print("setup end\r\n");
       
     }
 
+    String x = wifi.getLocalIP().c_str();
+    if (WIFI_MODE == 1) {
+        INTERNET_IP = splitString(x, '"', 1);
+        INTERNET_IP = splitString(INTERNET_IP, '"', 0);
 
+        INTERNET_MAC = splitString(x, '"', 3);
+        INTERNET_MAC = splitString(INTERNET_MAC, '"', 0);
+    }
+    else if (WIFI_MODE == 2) {
+        INTRANET_IP = splitString(x, '"', 1);
+        INTRANET_IP = splitString(INTRANET_IP, '"', 0);
 
+        INTRANET_MAC = splitString(x, '"', 3);
+        INTRANET_MAC = splitString(INTRANET_MAC, '"', 0);
+    }
+    else if (WIFI_MODE == 3) {
+        INTRANET_IP = splitString(x, '"', 1);
+        INTRANET_IP = splitString(INTRANET_IP, '"', 0);
+
+        INTRANET_MAC = splitString(x, '"', 3);
+        INTRANET_MAC = splitString(INTRANET_MAC, '"', 0);
+
+        INTERNET_IP = splitString(x, '"', 5);
+        INTERNET_IP = splitString(INTERNET_IP, '"', 0);
+
+        INTERNET_MAC = splitString(x, '"', 7);
+        INTERNET_MAC = splitString(INTERNET_MAC, '"', 0);
+    }
     Serial.println("Server Ready");
 }
 
@@ -2250,6 +2269,7 @@ void checkHTTP() {
             tmp += (char) buffer[i];
         }
         String res = "";
+        boolean reboot = false;
         if (tmp[0] == 'Z') {
           // Z001*
           // เปลี่ยนสถานะ relay 1, 2, 3, 4
@@ -2348,6 +2368,9 @@ void checkHTTP() {
           BOARD_NAME = splitString(tmp, '~', 7);
           STATIC_IP = splitString(tmp, '~', 8);
           PORT = splitString(tmp, '~', 9);
+          
+          reboot = splitString(tmp, '~', 10) == "0" ? false : true;
+          
           setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
           
               res += HEATER_MODE;
@@ -2384,6 +2407,21 @@ void checkHTTP() {
         } else {
             Serial.print("send back err\r\n");
         }
+
+//        boolean releasedOK = true;
+//        do {
+//          releasedOK = wifi.releaseTCP(mux_id);
+//          if (releasedOK) {
+//            Serial.print("release tcp ");
+//            Serial.print(mux_id);
+//            Serial.println(" ok");
+//          }
+//          else {
+//            Serial.print("release tcp");
+//            Serial.print(mux_id);
+//            Serial.println(" err");
+//          }
+//        } while (!releasedOK);
         
         if (wifi.releaseTCP(mux_id)) {
             Serial.print("release tcp ");
@@ -2398,10 +2436,48 @@ void checkHTTP() {
         Serial.print("Status:[");
         Serial.print(wifi.getIPStatus().c_str());
         Serial.println("]");
+
+        
+          if (reboot) {
+            Serial.println("reboot");
+            lcd.setCursor(0, 0);
+            lcd.print("rebooting...");
+            wdt_enable(WDTO_2S);
+    
+            while (true) {
+    
+            }
+          }
+          else {
+            Serial.println("not reboot");
+          }
+     Serial.println();
+     Serial.println(); 
+     Serial.println(); 
+     Serial.println(); 
+     Serial.println(); 
+     Serial.println(); 
+     Serial.println(); 
+     Serial.println(); 
+     Serial.println(); 
+     Serial.println(); 
+     Serial.println();  
     }
 }
 
 void feed() {
+  Serial.println(myservo.read());
   
+  myservo.write(0);
+  Serial.println(myservo.read());
+  delay(1000);
+  
+  myservo.write(180);
+  Serial.println(myservo.read());
+  delay(3000);
+
+  myservo.write(0);
+  Serial.println(myservo.read());
+  delay(500);
 }
 

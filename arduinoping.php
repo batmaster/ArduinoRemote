@@ -15,7 +15,7 @@ if (isset($_GET["bid"])) {
 
     $sql = "INSERT INTO ping (bid, ip, port, date) VALUES ('$bid', '$ip', '$port', NOW()) ON DUPLICATE KEY UPDATE ip = '$ip', port = '$port', date = NOW()";
     mysql_query($sql);
-    echo $ip;
+    echo $ip ."~" .date("Y-m-d H:i:s");
 }
 // get all lost boards
 else if (isset($_GET["lost5min"])) {

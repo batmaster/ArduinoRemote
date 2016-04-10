@@ -384,13 +384,18 @@ String ESP8266::recvString(String target, uint32_t timeout)
     while (millis() - start < timeout) {
         while(m_puart->available() > 0) {
             a = m_puart->read();
-			if(a == '\0') continue;
+      if(a == '\0') continue;
             data += a;
         }
         if (data.indexOf(target) != -1) {
             break;
         }   
     }
+    
+    Serial.println("=========1= start");
+    Serial.println(data);
+    Serial.println("=========1= end");
+    
     return data;
 }
 
@@ -402,7 +407,7 @@ String ESP8266::recvString(String target1, String target2, uint32_t timeout)
     while (millis() - start < timeout) {
         while(m_puart->available() > 0) {
             a = m_puart->read();
-			if(a == '\0') continue;
+      if(a == '\0') continue;
             data += a;
         }
         if (data.indexOf(target1) != -1) {
@@ -411,6 +416,11 @@ String ESP8266::recvString(String target1, String target2, uint32_t timeout)
             break;
         }
     }
+    
+    Serial.println("=========2= start");
+    Serial.println(data);
+    Serial.println("=========2= end");
+    
     return data;
 }
 
@@ -422,7 +432,7 @@ String ESP8266::recvString(String target1, String target2, String target3, uint3
     while (millis() - start < timeout) {
         while(m_puart->available() > 0) {
             a = m_puart->read();
-			if(a == '\0') continue;
+      if(a == '\0') continue;
             data += a;
         }
         if (data.indexOf(target1) != -1) {
@@ -526,7 +536,7 @@ bool ESP8266::sATCWJAP(String ssid, String pwd)
     m_puart->print(pwd);
     m_puart->println("\"");
     
-    data = recvString("OK", "FAIL", 10000);
+    data = recvString("OK", "FAIL", 20000);
     if (data.indexOf("OK") != -1) {
         return true;
     }
