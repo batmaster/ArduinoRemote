@@ -2,9 +2,11 @@
 #include <avr/wdt.h>
 #include <stdio.h>
 
+
 // นำเข้าไลบรารี่สำหรับพวกวัดอุณหภูมิ
 #include <OneWire.h>
 #include <DallasTemperature.h>
+
 
 // ที่เป็นแนวๆ ขื่อตัวแปร ตามด้วยตัวเลขแบบนี้ เดาเลยน่าจะเกี่ยวกับกำหนด pin
 #define ONE_WIRE_BUS 10
@@ -16,29 +18,21 @@ DallasTemperature sensors(&oneWire);
 #define RELAY_3 24
 #define RELAY_4 22
 
-// นำเข้าไลบรารี่สำหรับ SD ตอนนี้ ยังไม่ใช้
-#include <SPI.h>
-#include <SD.h>
-
-const int chipSelect = 48;
 
 // ตัวแกรเก็บว่าจะให้แสดงผลทุกอย่างที่เข้าออกบอร์ดหรือไม่ #มันแถมมากับโค้ด wifi
 #define DEBUG true
 
 
 // นำเข้าไลบรารี่ LCD
-// 4 ขา
 #include <Wire.h>
 #include <LCD.h>
 #include <LiquidCrystal_I2C.h>
+
+
 // ตั้งค่า pin สำหรับ LCD
 #define I2C_ADDR 0x27 // <
 #define BACKLIGHT_PIN 3
-
 LiquidCrystal_I2C lcd(I2C_ADDR,2,1,0,4,5,6,7);
-//////// หลายขา LiquidCrystal lcd(รู4, 6, 11, 12, 13, 14);
-//#include <LiquidCrystal.h>
-//LiquidCrystal lcd(12, 11, 4, 5, 6, 7);
 
 
 // นำเข้าไลบรารี่ Keypad
@@ -56,13 +50,7 @@ char keys[ROWS][COLS] = {
 
 byte rowPins[ROWS] = {32, 34, 36, 38};
 byte colPins[COLS] = {40, 42, 44, 46};
-
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
-
-
-
-
-
 
 
 
@@ -107,7 +95,7 @@ double TEMP = 0;
 //  8+k+1+l+1       BOARD_NAME:m
 //  8+k+1+l+1+m     255
 //  8+k+1+l+1+m+1   STATIC_IP:4
-//  8+k+1+l+1+m+1+4 PORT:2
+//  8+k+1+l+1+m+1+4 PORT:
 
 
 // ดึงค่าตัวแปรพื้นฐานจากหน่วยความจำ
@@ -248,7 +236,7 @@ void resetBased() {
     lcd.setCursor(0, 0);
     lcd.print("resetting...");
 
-    setEEPROM(0, 0, 0, 25.00, 30.00, 3, "ssid", "password", "A0000", "0.0.0.0", "8081");
+    setEEPROM(0, 0, 0, 25.00, 30.00, 3, "Ton", "pongz1234", "A0000", "0.0.0.0", "8081");
 
     delay(500);
     lcd.setCursor(0, 0);
@@ -258,18 +246,23 @@ void resetBased() {
 }
 
 
+// ฟังก์ชั่นเซตค่าพื้นฐานโมดูล LCD
+void setLCD() {
+    // LCD เป็นแบบ 2 แถว 16 ตัวอักษร
+    lcd.begin(16, 2);
+    // สำหรับ 4 ขา
+    lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
+    lcd.setBacklight(HIGH);
+    lcd.home(); // ไปที่ตัวอักษรที่ 0 แถวที่ 1
+}
+
+// ส่วนโปรแกรมจอ
 int frameSec = 50;
 int frame = 0;
 int lcdMode = 0; // 0 = home, 1 = menu
 
-
 int cursorMenu = 0;
 int cursorMenuSub = 0;
-
-
-
-
-
 
 int sizeMenu = 6;
 String menu[] = {
@@ -292,79 +285,6 @@ String menuSub[][7] = {
 };
 
 
-// นำเข้าไลบรารี่ Servo
-#include  <Servo.h>
-Servo myservo;
-
-void setServo() {
-    myservo.attach(13);
-}
-
-boolean j = false;
-void tryServo() {
-    for (int i = 0; i < 360; i++) {
-        myservo.write(j ? i : -1*i);
-        delay(250);
-        j = !j;
-        Serial.println(i);
-    }
-}
-
-
-#include "ESP8266.h"
-
-ESP8266 wifi(Serial1);
-
-// ฟังก์ชั่นเริ่มต้นที่ arduino กำหนด
-// คือเรียกใช้แค่ครั้งเดียวตอนเปิดบอร์ด
-void setup() {
-//  clearEEPROM();
-//  resetBased();
-
-      // กำหนดความถี่ช่วงข้อมูลสำหรับรับเข้า ส่งออกข้อมูลผ่านหน้าจอ serial monitor
-    Serial.begin(9600); //9600
-      // กำหนดความถี่ช่วงข้อมูลสำหรับรับเข้า ส่งออกข้อมูลโมดูลไวไฟ
-    Serial1.begin(115200); //115200
-    Serial.println("Booting...");
-    
-      // เรีกใช้ฟังก์ชั่นที่ชื่อขึ้นต้นด้วย set คือ กำหนดค่าพื้นฐานให้แต่ละโมดูล
-    
-    getBased();
-    setLCD();
-    setHTTP(WIFI_SSID, WIFI_PASSWORD);
-//    setHTTP("AP", "12345678");
-    
-    setServo();
-    setTemp();
-    setRelays();
-
-//    feed();
-
-}
-
-#define PING_LONG 1000
-int loop_runner = 0;
-int r = 1;
-// อีกฟังก์ชั่นที่ arduino กำหนดให้ต้องมี
-void loop() {
-    if (loop_runner % PING_LONG == 0) {
-      
-      sendHTTP(4, "188.166.180.204", 8888, "/arduinoping.php?bid=" + BOARD_NAME + "&port=" + PORT);
-      loop_runner = 1;
-    }
-    
-    //    checkTemp(1);
-    // checkTemp(2);
-
-    checkHTTP();
-
-    showLCD();
-    checkKeypad();
-
-    loop_runner++;
-}
-
-
 String tmp = "";
 int indexEdit = 0;
 int en = 0;
@@ -384,7 +304,7 @@ void showLCD() {
             
             checkTemp(0);
         }
-
+        
         if (frame < 1*frameSec) {
             lcd.setCursor(0, 1); // ไปที่ตัวอักษรที่ 1 แถวที่ 2 (col, row)
             lcd.print("Heater: ");
@@ -646,6 +566,369 @@ void showLCD() {
 }
 
 
+
+// นำเข้าไลบรารี่ Servo
+#include  <Servo.h>
+Servo myservo;
+
+void setServo() {
+    myservo.attach(13);
+}
+
+// สั่งหมุน servo
+void feed() {
+  Serial.println(myservo.read());
+  
+  myservo.write(0);
+  Serial.println(myservo.read());
+  delay(1000);
+  
+  myservo.write(180);
+  Serial.println(myservo.read());
+  delay(3000);
+
+  myservo.write(0);
+  Serial.println(myservo.read());
+  delay(500);
+}
+
+
+// ฟังก์ชั่นเซตค่าพื้นฐานโมดูล relay
+// กำหนด pin และ
+// ทำให้รีเลย์ทั้ง4 ปิดอยู่ก่อน
+void setRelays() {
+    pinMode(RELAY_1, OUTPUT);
+    pinMode(RELAY_2, OUTPUT);
+    pinMode(RELAY_3, OUTPUT);
+    pinMode(RELAY_4, OUTPUT);
+    digitalWrite(RELAY_1, HIGH);
+    digitalWrite(RELAY_2, HIGH);
+    digitalWrite(RELAY_3, HIGH);
+    digitalWrite(RELAY_4, HIGH);
+}
+
+
+// ฟังกั่นเซตค่าพื้นฐานโมดูลอุณหภูมิ
+// ไม่ต้องกำหนด pin เพราะเซ็ตไว้ข้างบนแล้ว
+// #ไม่ต้องถามว่าทำไมไม่เหมือนกับการเซตโมดูลอื่น เพราะขึ้นอยู่กับไลบรารี่ทั้งนั้น
+void setTemp() {
+    sensors.begin();
+}
+
+
+// เอาไว้เรียกค่าจากตัววัดอุณหภูมิให้แสดงผลทาง serial monitor
+// และตรวจสอบเงื่อนไขการเปิดปิดฮีตเตอร์ เครื่องกรองในนี้
+void checkTemp(int index) {
+    sensors.requestTemperatures();
+
+    TEMP = sensors.getTempCByIndex(index);
+    double workLoad = (FILTER_MAX - HEATER_MIN) / 2 / 2;
+    // ควบคุมฮีต
+    if (HEATER_MODE == 0) {
+      
+        if (TEMP < HEATER_MIN || TEMP < HEATER_MIN + workLoad) {
+            digitalWrite(RELAY_1, LOW);
+        }
+        else {
+            digitalWrite(RELAY_1, HIGH);
+        }
+    }
+
+    // กรอง
+    if (FILTER_MODE == 0) {
+        if (TEMP > FILTER_MAX || TEMP > FILTER_MAX - workLoad) {
+            digitalWrite(RELAY_2, LOW);
+        }
+        else {
+            digitalWrite(RELAY_2, HIGH);
+        }
+    }
+}
+
+
+// ตั้งค่าโมดูลไวไฟ ยุ่งยางมาก
+// #ไม่ต้องถามมาก เอามาจากเน็ต
+void setHTTP(String ssid, String pass) {
+    lcd.setCursor(0, 0);
+    lcd.print("connecting...");
+    lcd.setCursor(0, 1);
+    lcd.print("mode: ");
+    lcd.print(WIFI_MODE);
+
+    Serial.println("1=========================");
+    sendCommand("AT+RST\r\n",2000,DEBUG); // reset module
+    delay(2000);
+    Serial.println("2=========================");
+    String CWMODE = "AT+CWMODE=";
+    CWMODE += WIFI_MODE;
+    CWMODE += "\r\n";
+    sendCommand(CWMODE,1000,DEBUG); // configure as access point
+    delay(1000);
+    Serial.println("3=========================");
+    sendCommand("AT+CWJAP=\"" + ssid + "\",\"" + pass + "\"\r\n",3000,DEBUG);
+    delay(5000);
+    Serial.println("4=========================");
+    delay(1000);
+    Serial.println("5=========================");
+    String x = sendCommand("AT+CIFSR\r\n",1000,DEBUG); // get ip address
+    if (WIFI_MODE == 1) {
+        INTERNET_IP = splitString(x, '"', 1);
+        INTERNET_IP = splitString(INTERNET_IP, '"', 0);
+
+        INTERNET_MAC = splitString(x, '"', 3);
+        INTERNET_MAC = splitString(INTERNET_MAC, '"', 0);
+    }
+    else if (WIFI_MODE == 2) {
+        INTRANET_IP = splitString(x, '"', 1);
+        INTRANET_IP = splitString(INTRANET_IP, '"', 0);
+
+        INTRANET_MAC = splitString(x, '"', 3);
+        INTRANET_MAC = splitString(INTRANET_MAC, '"', 0);
+    }
+    else if (WIFI_MODE == 3) {
+        INTRANET_IP = splitString(x, '"', 1);
+        INTRANET_IP = splitString(INTRANET_IP, '"', 0);
+
+        INTRANET_MAC = splitString(x, '"', 3);
+        INTRANET_MAC = splitString(INTRANET_MAC, '"', 0);
+
+        INTERNET_IP = splitString(x, '"', 5);
+        INTERNET_IP = splitString(INTERNET_IP, '"', 0);
+
+        INTERNET_MAC = splitString(x, '"', 7);
+        INTERNET_MAC = splitString(INTERNET_MAC, '"', 0);
+    }
+
+    delay(1000);
+    Serial.println("6=========================");
+    sendCommand("AT+CIPMUX=1\r\n",1000,DEBUG); // configure for multiple connections
+    delay(1000);
+    Serial.println("7=========================");
+    String CIPSERVER = "AT+CIPSERVER=1,";
+    CIPSERVER += PORT.toInt();
+    CIPSERVER += "\r\n";
+    sendCommand(CIPSERVER,1000,DEBUG); // turn on server on port 80
+    delay(1000);
+    Serial.println("8=========================");
+
+    Serial.println("Server Ready");
+}
+
+
+// ส่งข้อมูลปิงไป server
+void sendHTTP(String ipdomain, int port, String param) {
+    String startcommand = "AT+CIPSTART=4,\"TCP\",\"" + ipdomain + "\"," + port;
+    Serial1.println(startcommand);
+    Serial.println(startcommand);
+
+    if (Serial1.find("Error")) {
+        Serial.println("error on start");
+        return;
+    }
+
+    String content = "GET " + param + " HTTP/1.1\r\nHost: " + ipdomain + "\r\n\r\n ";
+    Serial.println(content);
+    sendCIPData(4, content);
+}
+
+// เรียกค่าจากโมดูลไวไฟ แล้วเช็คว่ามันส่งอะไรมา
+void checkHTTP() {
+    if(Serial1.available()) // check if the esp is sending a message
+    {
+        if(Serial1.find("+IPD,")) {
+            delay(500);
+            int connectionId = Serial1.read()-48;
+            
+            Serial1.find("relay=");
+            String tmp = "";
+            while (Serial1.available()) {
+                int c = Serial1.read();
+                if (c == 32)
+                  break;
+                tmp += (char) c;
+            }
+
+            Serial.println("get");
+            Serial.println(tmp);
+
+            String res = "";
+            boolean reboot = false;
+            if (tmp[0] == 'Z') {
+              // Z001*
+              // เปลี่ยนสถานะ relay 1, 2, 3, 4
+               if (tmp[1] != '*')
+                   digitalWrite(RELAY_1, tmp[1]);
+               if (tmp[2] != '*')
+                   digitalWrite(RELAY_2, tmp[2]);
+               if (tmp[3] != '*')
+                   digitalWrite(RELAY_3, tmp[3]);
+               if (tmp[4] != '*')
+                   digitalWrite(RELAY_4, tmp[4]);
+               
+               res += digitalRead(RELAY_1) == LOW ? "0" : "1";
+               res += digitalRead(RELAY_2) == LOW ? "0" : "1";
+               res += digitalRead(RELAY_3) == LOW ? "0" : "1";
+               res += digitalRead(RELAY_4) == LOW ? "0" : "1";
+            }
+            else if (tmp[0] == 'A') {
+              // A
+              // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
+                    res += HEATER_MODE == 0 ? "1" : "0";
+                    res += FILTER_MODE == 0 ? "1" : "0";
+                    res += digitalRead(RELAY_1) == LOW ? "0" : "1";
+                    res += digitalRead(RELAY_2) == LOW ? "0" : "1";
+    
+                    res += BOARD_NAME;
+                    res += "-";
+                    res += sensors.getTempCByIndex(0);
+            }
+            else if (tmp[0] == 'B') {
+                    // B0011
+                    // ตั้งค่า โหมด heater, filter และ relay 1, 2 และ
+                    // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
+    
+                    if (tmp[1] == 1) {
+                        HEATER_MODE = 0;
+                    }
+                    else {
+                        HEATER_MODE = 1;
+                        digitalWrite(RELAY_1, tmp[3]);
+                    }
+                    
+                    if (tmp[2] == 1) {
+                        FILTER_MODE = 0;
+                    }
+                    else {
+                        FILTER_MODE = 1;
+                        digitalWrite(RELAY_2, tmp[4]);
+                    }
+                    
+                    setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
+    
+                    res += HEATER_MODE ? "1" : "0";
+                    res += FILTER_MODE ? "1" : "0";
+                    res += digitalRead(RELAY_1) == LOW ? "0" : "1";
+                    res += digitalRead(RELAY_2) == LOW ? "0" : "1";
+    
+                    res += BOARD_NAME;
+                    res += "-";
+                    res += sensors.getTempCByIndex(0);
+              
+            }
+            else if (tmp[0] == 'C') {
+                  feed();
+                  res += "OK";
+            }
+            else if (tmp[0] == 'D') {
+                  res += HEATER_MODE;
+                  res += "~";
+                  res += FILTER_MODE;
+                  res += "~";
+                  res += HEATER_MIN;
+                  res += "~";
+                  res += FILTER_MAX;
+                  res += "~";
+                  res += WIFI_MODE;
+                  res += "~";
+                  res += WIFI_SSID;
+                  res += "~";
+                  res += WIFI_PASSWORD;
+                  res += "~";
+                  res += BOARD_NAME;
+                  res += "~";
+                  res += STATIC_IP;
+                  res += "~";
+                  res += PORT;
+            }
+            else if (tmp[0] == 'E') {
+              HEATER_MODE = ((int) tmp[1]) - 48;
+              FILTER_MODE = ((int) tmp[3]) - 48;
+              HEATER_MIN = splitString(tmp, '~', 2).toFloat();
+              FILTER_MAX = splitString(tmp, '~', 3).toFloat();
+              WIFI_MODE = splitString(tmp, '~', 4).toInt();
+              WIFI_SSID = splitString(tmp, '~', 5);
+              WIFI_PASSWORD = splitString(tmp, '~', 6);
+              BOARD_NAME = splitString(tmp, '~', 7);
+              STATIC_IP = splitString(tmp, '~', 8);
+              PORT = splitString(tmp, '~', 9);
+              
+              reboot = splitString(tmp, '~', 10) == "0" ? false : true;
+              
+              setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
+              
+                  res += HEATER_MODE;
+                  res += "~";
+                  res += FILTER_MODE;
+                  res += "~";
+                  res += HEATER_MIN;
+                  res += "~";
+                  res += FILTER_MAX;
+                  res += "~";
+                  res += WIFI_MODE;
+                  res += "~";
+                  res += WIFI_SSID;
+                  res += "~";
+                  res += WIFI_PASSWORD;
+                  res += "~";
+                  res += BOARD_NAME;
+                  res += "~";
+                  res += STATIC_IP;
+                  res += "~";
+                  res += PORT;
+            }
+
+            sendHTTPResponse(connectionId, res);
+        }
+    }
+}
+
+
+// ฟังก์ชั่นเริ่มต้นที่ arduino กำหนด
+// คือเรียกใช้แค่ครั้งเดียวตอนเปิดบอร์ด ตรงกันข้ามกับ loop()
+void setup() {
+  
+//  clearEEPROM();
+//  resetBased();
+      // กำหนดความถี่ช่วงข้อมูลสำหรับรับเข้า ส่งออกข้อมูลผ่านหน้าจอ serial monitor
+    Serial.begin(9600); //9600
+      // กำหนดความถี่ช่วงข้อมูลสำหรับรับเข้า ส่งออกข้อมูลโมดูลไวไฟ
+    Serial1.begin(115200); //115200
+    Serial.println("Booting...");
+    
+      // เรีกใช้ฟังก์ชั่นที่ชื่อขึ้นต้นด้วย set คือ กำหนดค่าพื้นฐานให้แต่ละโมดูล
+    getBased();
+    setLCD();
+    setHTTP(WIFI_SSID, WIFI_PASSWORD);
+//    setHTTP("AP", "12345678");
+    
+    setServo();
+    setTemp();
+    setRelays();
+}
+
+
+#define PING_LONG 1000
+int loop_runner = 0;
+int r = 1;
+// อีกฟังก์ชั่นที่ arduino กำหนดให้ต้องมี
+void loop() {
+    if (loop_runner % PING_LONG == 0) {
+      sendHTTP("188.166.180.204", 8888, "/arduinoping.php?bid=" + BOARD_NAME + "&port=" + PORT);
+      loop_runner = 1;
+    }
+    
+    //    checkTemp(1);
+    // checkTemp(2);
+
+    checkHTTP();
+
+    showLCD();
+    checkKeypad();
+
+    loop_runner++;
+}
+
+// โปรแกรม Keypad
 String b1 = "._+-=!@#$%^&*()";
 String b2 = "abcABC";
 String b3 = "defDEF";
@@ -657,6 +940,7 @@ String b8 = "tuvTUV";
 String b9 = "wxyzWXYZ";
 String b0 = "1234567890 ";
 
+// ตรวจสอบปุ่มกด
 void checkKeypad() {
     char c = keypad.getKey();
     if (c != NO_KEY) {
@@ -1983,217 +2267,9 @@ void checkKeypad() {
 }
 
 
-// ฟังก์ชั่นเซตค่าพื้นฐานโมดูล LCD
-void setLCD() {
-    // LCD เป็นแบบ 2 แถว 16 ตัวอักษร
-    lcd.begin(16, 2);
-    // สำหรับ 4 ขา
-    lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
-    lcd.setBacklight(HIGH);
-    lcd.home(); // ไปที่ตัวอักษรที่ 0 แถวที่ 1
-}
-
-// ฟังก์ชั่นเซตค่าพื้นฐานโมดูล relay
-// กำหนด pin และ
-// ทำให้รีเลย์ทั้ง4 ปิดอยู่ก่อน
-void setRelays() {
-    pinMode(RELAY_1, OUTPUT);
-    pinMode(RELAY_2, OUTPUT);
-    pinMode(RELAY_3, OUTPUT);
-    pinMode(RELAY_4, OUTPUT);
-    digitalWrite(RELAY_1, HIGH);
-    digitalWrite(RELAY_2, HIGH);
-    digitalWrite(RELAY_3, HIGH);
-    digitalWrite(RELAY_4, HIGH);
-}
-
-// ฟังกั่นเซตค่าพื้นฐานโมดูลอุณหภูมิ
-// ไม่ต้องกำหนด pin เพราะเซ็ตไว้ข้างบนแล้ว
-// #ไม่ต้องถามว่าทำไมไม่เหมือนกับการเซตโมดูลอื่น เพราะขึ้นอยู่กับไลบรารี่ทั้งนั้น
-void setTemp() {
-    sensors.begin();
-}
-
-// เอาไว้เรียกค่าจากตัววัดอุณหภูมิให้แสดงผลทาง serial monitor
-// และตรวจสอบเงื่อนไขการเปิดปิดฮีตเตอร์ เครื่องกรองในนี้
-void checkTemp(int index) {
-    sensors.requestTemperatures();
-
-//    Serial.print("Temperature for Device ");
-//    Serial.print(index);
-//    Serial.print(" is: ");
-    TEMP = sensors.getTempCByIndex(index);
-//    Serial.println(TEMP);
-
-    // ควบคุมฮีต
-    if (HEATER_MODE == 0) {
-        if (TEMP > HEATER_MIN) {
-            digitalWrite(RELAY_1, HIGH);
-        }
-        else {
-            digitalWrite(RELAY_1, LOW);
-        }
-    }
-
-    // กรอง
-    if (FILTER_MODE == 0) {
-        if (TEMP < FILTER_MAX) {
-            digitalWrite(RELAY_2, HIGH);
-        }
-        else {
-            digitalWrite(RELAY_2, LOW);
-        }
-    }
-
-}
-
-// ตั้งค่าโมดูลไวไฟ ยุ่งยางมาก
-// #ไม่ต้องถามมาก เอามาจากเน็ต
-void setHTTP(String ssid, String pass) {
-    lcd.setCursor(0, 0);
-    lcd.print("connecting...");
-    lcd.setCursor(0, 1);
-    lcd.print("mode: ");
-    lcd.print(WIFI_MODE);
-
-    Serial.print("setup begin\r\n");
-    Serial.print("FW Version:");
-//    Serial.println(wifi.getVersion().c_str());
 
 
-    uint32_t p = PORT.toInt();
-
-    if (WIFI_MODE == 1) {
-            if (wifi.setOprToStation()) {
-                Serial.print("to station ok\r\n");
-            } else {
-                Serial.print("to station err\r\n");
-            }
-        
-            if (wifi.joinAP(ssid, pass)) {
-                Serial.print("Join AP success\r\n");
-                Serial.print("IP: ");       
-                Serial.println(wifi.getLocalIP().c_str());
-            } else {
-                Serial.print("Join AP failure\r\n");
-            }
-            
-            if (wifi.enableMUX()) {
-                Serial.print("multiple ok\r\n");
-            } else {
-                Serial.print("multiple err\r\n");
-            }
-            
-            if (wifi.startTCPServer(p)) {
-                Serial.print("start tcp server ok\r\n");
-            } else {
-                Serial.print("start tcp server err\r\n");
-            }
-
-            if (wifi.setTCPServerTimeout(10)) { 
-                Serial.print("set tcp server timout 10 seconds\r\n");
-            } else {
-                Serial.print("set tcp server timout err\r\n");
-            }
-            
-            Serial.print("setup end\r\n");
-      
-    }
-    else if (WIFI_MODE == 2) {
-            if (wifi.setOprToSoftAP()) {
-                Serial.print("to softap ok\r\n");
-            } else {
-                Serial.print("to softap err\r\n");
-            }
-            
-            if (wifi.enableMUX()) {
-                Serial.print("multiple ok\r\n");
-            } else {
-                Serial.print("multiple err\r\n");
-            }
-            
-            if (wifi.startTCPServer(p)) {
-                Serial.print("start tcp server ok\r\n");
-            } else {
-                Serial.print("start tcp server err\r\n");
-            }
-
-            if (wifi.setTCPServerTimeout(10)) { 
-                Serial.print("set tcp server timout 10 seconds\r\n");
-            } else {
-                Serial.print("set tcp server timout err\r\n");
-            }
-            
-            Serial.print("setup end\r\n");
-    }
-    else if (WIFI_MODE == 3) {
-            if (wifi.setOprToStationSoftAP()) {
-                Serial.print("to station + softap ok\r\n");
-            } else {
-                Serial.print("to station + softap err\r\n");
-            }
-         
-            if (wifi.joinAP(ssid, pass)) {
-                Serial.print("Join AP success\r\n");
-                Serial.print("IP: ");
-                Serial.println(wifi.getLocalIP().c_str());    
-            } else {
-                Serial.print("Join AP failure\r\n");
-            }
-            
-            if (wifi.enableMUX()) {
-                Serial.print("multiple ok\r\n");
-            } else {
-                Serial.print("multiple err\r\n");
-            }
-            
-            if (wifi.startTCPServer(p)) {
-                Serial.print("start tcp server ok\r\n");
-            } else {
-                Serial.print("start tcp server err\r\n");
-            }
-
-            if (wifi.setTCPServerTimeout(10)) { 
-                Serial.print("set tcp server timout 10 seconds\r\n");
-            } else {
-                Serial.print("set tcp server timout err\r\n");
-            }
-            
-            Serial.print("setup end\r\n");
-      
-    }
-
-    String x = wifi.getLocalIP().c_str();
-    if (WIFI_MODE == 1) {
-        INTERNET_IP = splitString(x, '"', 1);
-        INTERNET_IP = splitString(INTERNET_IP, '"', 0);
-
-        INTERNET_MAC = splitString(x, '"', 3);
-        INTERNET_MAC = splitString(INTERNET_MAC, '"', 0);
-    }
-    else if (WIFI_MODE == 2) {
-        INTRANET_IP = splitString(x, '"', 1);
-        INTRANET_IP = splitString(INTRANET_IP, '"', 0);
-
-        INTRANET_MAC = splitString(x, '"', 3);
-        INTRANET_MAC = splitString(INTRANET_MAC, '"', 0);
-    }
-    else if (WIFI_MODE == 3) {
-        INTRANET_IP = splitString(x, '"', 1);
-        INTRANET_IP = splitString(INTRANET_IP, '"', 0);
-
-        INTRANET_MAC = splitString(x, '"', 3);
-        INTRANET_MAC = splitString(INTRANET_MAC, '"', 0);
-
-        INTERNET_IP = splitString(x, '"', 5);
-        INTERNET_IP = splitString(INTERNET_IP, '"', 0);
-
-        INTERNET_MAC = splitString(x, '"', 7);
-        INTERNET_MAC = splitString(INTERNET_MAC, '"', 0);
-    }
-    Serial.println("Server Ready");
-}
-
+// ฟังก์ชั่นตัดข้อความ
 String splitString(String data, char separator, int index) {
     int found = 0;
     int strIndex[] = {0, -1};
@@ -2210,274 +2286,128 @@ String splitString(String data, char separator, int index) {
     return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
-void sendHTTP(uint8_t mux_id, String ipdomain, int port, String param) {
-    uint8_t buffer[1024] = {0};
 
-    if (wifi.createTCP(mux_id, ipdomain, port)) {
-        Serial.print("create tcp ok\r\n");
-    } else {
-        Serial.print("create tcp err\r\n");
-    }
-    
-    String tmp = "GET " + param + " HTTP/1.1\r\nHost: " + ipdomain + "\r\nConnection: close\r\n\r\n";
-    char *req = strdup(tmp.c_str());
-    wifi.send(mux_id, (const uint8_t*) req, strlen(req));
 
-    uint32_t len = wifi.recv(mux_id, buffer, sizeof(buffer), 10000);
-    if (len > 0) {
-        Serial.print("Received:[");
-        for(uint32_t i = 0; i < len; i++) {
-            Serial.print((char)buffer[i]);
-        }
-        Serial.print("]\r\n");
-    }
+// =================== ข้างล่างนี้ ก็อบมา มันมากับโค้ดไวไฟ =================== //
 
-    if (wifi.releaseTCP(mux_id)) {
-        Serial.print("release tcp ok\r\n");
-    } else {
-        Serial.print("release tcp err\r\n");
-    }
+/*
+* Name: sendHTTPResponse
+* Description: Function that sends HTTP 200, HTML UTF-8 response
+*/
+void sendHTTPResponse(int connectionId, String content)
+{
+Serial.println("RESS ===============================");
+    // build HTTP response
+    String httpResponse;
+    String httpHeader;
+    // HTTP Header
+    httpHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n";
+    httpHeader += "Content-Length: ";
+    httpHeader += content.length();
+    httpHeader += "\r\n";
+    httpHeader +="Connection: close\r\n\r\n";
+    httpResponse = httpHeader + content + " "; // There is a bug in this code: the last character of "content" is not sent, I cheated by adding this extra space
+    sendCIPData(connectionId,httpResponse);
+    Serial.println("END ===============================");
+    Serial.println();
+    Serial.println();
+    Serial.println();
+    Serial.println();
+    Serial.println();
+    Serial.println();
 }
 
-
-// เรียกค่าจากโมดูลไวไฟ แล้วเช็คว่ามันส่งอะไรมา
-
-void checkHTTP() {
-    // อ่าน
-    uint8_t buffer[256] = {0};
-    uint8_t mux_id;
-    uint32_t len = wifi.recv(&mux_id, buffer, sizeof(buffer), 100);
-    if (len > 0) {
-        Serial.print("Status:[");
-        Serial.print(wifi.getIPStatus().c_str());
-        Serial.println("]");
-        
-        Serial.print("Received from :");
-        Serial.print(mux_id);
-        Serial.print("[");
-        for(uint32_t i = 0; i < len; i++) {
-            Serial.print((char)buffer[i]);
-        }
-        Serial.print("]\r\n");
-        
-        // เตรียมตอบกลับ
-        String tmp = "";
-        for (int i = 12; i < len; i++) {
-            if (buffer[i] == 32)
-                break;
-                
-            tmp += (char) buffer[i];
-        }
-        String res = "";
-        boolean reboot = false;
-        if (tmp[0] == 'Z') {
-          // Z001*
-          // เปลี่ยนสถานะ relay 1, 2, 3, 4
-           if (tmp[1] != '*')
-               digitalWrite(RELAY_1, tmp[1]);
-           if (tmp[2] != '*')
-               digitalWrite(RELAY_2, tmp[2]);
-           if (tmp[3] != '*')
-               digitalWrite(RELAY_3, tmp[3]);
-           if (tmp[4] != '*')
-               digitalWrite(RELAY_4, tmp[4]);
-           
-           res += digitalRead(RELAY_1) == LOW ? "0" : "1";
-           res += digitalRead(RELAY_2) == LOW ? "0" : "1";
-           res += digitalRead(RELAY_3) == LOW ? "0" : "1";
-           res += digitalRead(RELAY_4) == LOW ? "0" : "1";
-        }
-        else if (tmp[0] == 'A') {
-          // A
-          // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
-                res += HEATER_MODE == 0 ? "1" : "0";
-                res += FILTER_MODE == 0 ? "1" : "0";
-                res += digitalRead(RELAY_1) == LOW ? "0" : "1";
-                res += digitalRead(RELAY_2) == LOW ? "0" : "1";
-
-                res += BOARD_NAME;
-                res += "-";
-                res += sensors.getTempCByIndex(0);
-        }
-        else if (tmp[0] == 'B') {
-                // B0011
-                // ตั้งค่า โหมด heater, filter และ relay 1, 2 และ
-                // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
-
-                if (tmp[1] == 1) {
-                    HEATER_MODE = 0;
-                }
-                else {
-                    HEATER_MODE = 1;
-                    digitalWrite(RELAY_1, tmp[3]);
-                }
-                
-                if (tmp[2] == 1) {
-                    FILTER_MODE = 0;
-                }
-                else {
-                    FILTER_MODE = 1;
-                    digitalWrite(RELAY_2, tmp[4]);
-                }
-                
-                setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
-
-                res += HEATER_MODE ? "1" : "0";
-                res += FILTER_MODE ? "1" : "0";
-                res += digitalRead(RELAY_1) == LOW ? "0" : "1";
-                res += digitalRead(RELAY_2) == LOW ? "0" : "1";
-
-                res += BOARD_NAME;
-                res += "-";
-                res += sensors.getTempCByIndex(0);
-          
-        }
-        else if (tmp[0] == 'C') {
-              feed();
-              res += "OK";
-        }
-        else if (tmp[0] == 'D') {
-              res += HEATER_MODE;
-              res += "~";
-              res += FILTER_MODE;
-              res += "~";
-              res += HEATER_MIN;
-              res += "~";
-              res += FILTER_MAX;
-              res += "~";
-              res += WIFI_MODE;
-              res += "~";
-              res += WIFI_SSID;
-              res += "~";
-              res += WIFI_PASSWORD;
-              res += "~";
-              res += BOARD_NAME;
-              res += "~";
-              res += STATIC_IP;
-              res += "~";
-              res += PORT;
-        }
-        else if (tmp[0] == 'E') {
-          HEATER_MODE = ((int) tmp[1]) - 48;
-          FILTER_MODE = ((int) tmp[3]) - 48;
-          HEATER_MIN = splitString(tmp, '~', 2).toFloat();
-          FILTER_MAX = splitString(tmp, '~', 3).toFloat();
-          WIFI_MODE = splitString(tmp, '~', 4).toInt();
-          WIFI_SSID = splitString(tmp, '~', 5);
-          WIFI_PASSWORD = splitString(tmp, '~', 6);
-          BOARD_NAME = splitString(tmp, '~', 7);
-          STATIC_IP = splitString(tmp, '~', 8);
-          PORT = splitString(tmp, '~', 9);
-          
-          reboot = splitString(tmp, '~', 10) == "0" ? false : true;
-          
-          setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
-          
-              res += HEATER_MODE;
-              res += "~";
-              res += FILTER_MODE;
-              res += "~";
-              res += HEATER_MIN;
-              res += "~";
-              res += FILTER_MAX;
-              res += "~";
-              res += WIFI_MODE;
-              res += "~";
-              res += WIFI_SSID;
-              res += "~";
-              res += WIFI_PASSWORD;
-              res += "~";
-              res += BOARD_NAME;
-              res += "~";
-              res += STATIC_IP;
-              res += "~";
-              res += PORT;
-        }
-
-        String httpHeader = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n";
-        httpHeader += "Content-Length: ";
-        httpHeader += res.length();
-        httpHeader += "\r\n";
-        httpHeader +="Connection: close\r\n\r\n";
-        res = httpHeader + res + " ";
-
-        // ตอบกลับ
-        if(wifi.send(mux_id, (const uint8_t*) strdup(res.c_str()), res.length())) {
-            Serial.print("send back ok\r\n");
-        } else {
-            Serial.print("send back err\r\n");
-        }
-
-//        boolean releasedOK = true;
-//        do {
-//          releasedOK = wifi.releaseTCP(mux_id);
-//          if (releasedOK) {
-//            Serial.print("release tcp ");
-//            Serial.print(mux_id);
-//            Serial.println(" ok");
-//          }
-//          else {
-//            Serial.print("release tcp");
-//            Serial.print(mux_id);
-//            Serial.println(" err");
-//          }
-//        } while (!releasedOK);
-        
-        if (wifi.releaseTCP(mux_id)) {
-            Serial.print("release tcp ");
-            Serial.print(mux_id);
-            Serial.println(" ok");
-        } else {
-            Serial.print("release tcp");
-            Serial.print(mux_id);
-            Serial.println(" err");
-        }
-        
-        Serial.print("Status:[");
-        Serial.print(wifi.getIPStatus().c_str());
-        Serial.println("]");
-
-        
-          if (reboot) {
-            Serial.println("reboot");
-            lcd.setCursor(0, 0);
-            lcd.print("rebooting...");
-            wdt_enable(WDTO_2S);
-    
-            while (true) {
-    
-            }
-          }
-          else {
-            Serial.println("not reboot");
-          }
-     Serial.println();
-     Serial.println(); 
-     Serial.println(); 
-     Serial.println(); 
-     Serial.println(); 
-     Serial.println(); 
-     Serial.println(); 
-     Serial.println(); 
-     Serial.println(); 
-     Serial.println(); 
-     Serial.println();  
-    }
+/*
+* Name: sendCIPDATA
+* Description: sends a CIPSEND=<connectionId>,<data> command
+*
+*/
+void sendCIPData(int connectionId, String data)
+{
+    String cipSend = "AT+CIPSEND=";
+    cipSend += connectionId;
+    cipSend += ",";
+    cipSend +=data.length();
+    cipSend +="\r\n";
+    Serial.println("sendCommand ===============================");
+    sendCommand(cipSend,1000,DEBUG);
+    Serial.println("sendData ===============================");
+    sendData(data,1000,DEBUG);
 }
 
-void feed() {
-  Serial.println(myservo.read());
-  
-  myservo.write(0);
-  Serial.println(myservo.read());
-  delay(1000);
-  
-  myservo.write(180);
-  Serial.println(myservo.read());
-  delay(3000);
+/*
+* Name: sendCommand
+* Description: Function used to send data to Serial1.
+* Params: command - the data/command to send; timeout - the time to wait for a response; debug - print to Serial window?(true = yes, false = no)
+* Returns: The response from the Serial1 (if there is a reponse)
+*/
+String sendCommand(String command, const int timeout, boolean debug)
+{
+    String response = "";
 
-  myservo.write(0);
-  Serial.println(myservo.read());
-  delay(500);
+    Serial1.print(command); // send the read character to the Serial1
+
+    long int time = millis();
+
+    while( (time+timeout) > millis())
+    {
+        while(Serial1.available())
+        {
+
+            // The esp has data so display its output to the serial window
+            char c = Serial1.read(); // read the next character.
+            response+=c;
+        }
+    }
+
+    if(debug)
+    {
+        Serial.print(response);
+    }
+
+    return response;
+}
+
+/*
+* Name: sendData
+* Description: Function used to send data to Serial1.
+* Params: command - the data/command to send; timeout - the time to wait for a response; debug - print to Serial window?(true = yes, false = no)
+* Returns: The response from the Serial1 (if there is a reponse)
+*/
+String sendData(String command, const int timeout, boolean debug)
+{
+    String response = "";
+
+    int dataSize = command.length();
+    char data[dataSize];
+    command.toCharArray(data,dataSize);
+
+    Serial1.write(data,dataSize); // send the read character to the Serial1
+    if(debug)
+    {
+        Serial.println("\r\nvvvvvv HTTP Response From Arduino vvvvvv");
+        Serial.write(data,dataSize);
+        Serial.println("\r\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
+    }
+
+    long int time = millis();
+
+    while( (time+timeout) > millis())
+    {
+        while(Serial1.available())
+        {
+
+            // The esp has data so display its output to the serial window
+            char c = Serial1.read(); // read the next character.
+            response+=c;
+        }
+    }
+
+    if(debug)
+    {
+        Serial.print(response);
+    }
+
+    return response;
 }
 
