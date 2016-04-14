@@ -1,3 +1,4 @@
+
 // สำหรับโค้ด reboot
 #include <avr/wdt.h>
 #include <stdio.h>
@@ -773,8 +774,8 @@ void checkHTTP() {
             else if (tmp[0] == 'A') {
               // A
               // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
-                    res += HEATER_MODE == 0 ? "1" : "0";
-                    res += FILTER_MODE == 0 ? "1" : "0";
+                    res += String(HEATER_MODE);
+                    res += String(FILTER_MODE);
                     res += digitalRead(RELAY_1) == LOW ? "0" : "1";
                     res += digitalRead(RELAY_2) == LOW ? "0" : "1";
     
@@ -787,26 +788,26 @@ void checkHTTP() {
                     // ตั้งค่า โหมด heater, filter และ relay 1, 2 และ
                     // ส่งค่าสถานะ โหมด heater, filter และ relay 1, 2
     
-                    if (tmp[1] == 1) {
+                    if (tmp[1] == '0') {
                         HEATER_MODE = 0;
                     }
                     else {
                         HEATER_MODE = 1;
-                        digitalWrite(RELAY_1, tmp[3]);
+                        digitalWrite(RELAY_1, tmp[3] == '0' ? LOW : HIGH);
                     }
                     
-                    if (tmp[2] == 1) {
+                    if (tmp[2] == '0') {
                         FILTER_MODE = 0;
                     }
                     else {
                         FILTER_MODE = 1;
-                        digitalWrite(RELAY_2, tmp[4]);
+                        digitalWrite(RELAY_2, tmp[4] == '0' ? LOW : HIGH);
                     }
                     
                     setEEPROM(0, HEATER_MODE, FILTER_MODE, HEATER_MIN, FILTER_MAX, WIFI_MODE, WIFI_SSID, WIFI_PASSWORD, BOARD_NAME, STATIC_IP, PORT);
     
-                    res += HEATER_MODE ? "1" : "0";
-                    res += FILTER_MODE ? "1" : "0";
+                    res += String(HEATER_MODE);
+                    res += String(FILTER_MODE);
                     res += digitalRead(RELAY_1) == LOW ? "0" : "1";
                     res += digitalRead(RELAY_2) == LOW ? "0" : "1";
     
@@ -898,8 +899,8 @@ void setup() {
       // เรีกใช้ฟังก์ชั่นที่ชื่อขึ้นต้นด้วย set คือ กำหนดค่าพื้นฐานให้แต่ละโมดูล
     getBased();
     setLCD();
-    setHTTP(WIFI_SSID, WIFI_PASSWORD);
-//    setHTTP("AP", "12345678");
+    //setHTTP(WIFI_SSID, WIFI_PASSWORD);
+    setHTTP("MUCHJURAT", "0847449844");
     
     setServo();
     setTemp();
