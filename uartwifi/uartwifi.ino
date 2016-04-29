@@ -1,3 +1,4 @@
+// DON'T FORGET TO SET HARDWARE SERIAL BUFFER SIZE TO 128
 
 // สำหรับโค้ด reboot
 #include <avr/wdt.h>
@@ -237,7 +238,7 @@ void resetBased() {
     lcd.setCursor(0, 0);
     lcd.print("resetting...");
 
-    setEEPROM(0, 0, 0, 25.00, 30.00, 3, "Ton", "pongz1234", "A0000", "0.0.0.0", "8081");
+    setEEPROM(0, 0, 0, 25.00, 30.00, 3, "MUCHJURAT", "plo013677", "A0000", "0.0.0.0", "8081");
 
     delay(500);
     lcd.setCursor(0, 0);
@@ -735,7 +736,7 @@ void sendHTTP(String ipdomain, int port, String param) {
 // เรียกค่าจากโมดูลไวไฟ แล้วเช็คว่ามันส่งอะไรมา
 void checkHTTP() {
     if(Serial1.available()) // check if the esp is sending a message
-    {
+    { 
         if(Serial1.find("+IPD,")) {
             delay(500);
             int connectionId = Serial1.read()-48;
@@ -889,7 +890,7 @@ void checkHTTP() {
 void setup() {
   
 //  clearEEPROM();
-//  resetBased();
+  //  resetBased();
       // กำหนดความถี่ช่วงข้อมูลสำหรับรับเข้า ส่งออกข้อมูลผ่านหน้าจอ serial monitor
     Serial.begin(9600); //9600
       // กำหนดความถี่ช่วงข้อมูลสำหรับรับเข้า ส่งออกข้อมูลโมดูลไวไฟ
@@ -899,8 +900,8 @@ void setup() {
       // เรีกใช้ฟังก์ชั่นที่ชื่อขึ้นต้นด้วย set คือ กำหนดค่าพื้นฐานให้แต่ละโมดูล
     getBased();
     setLCD();
-    //setHTTP(WIFI_SSID, WIFI_PASSWORD);
-    setHTTP("MUCHJURAT", "0847449844");
+    setHTTP(WIFI_SSID, WIFI_PASSWORD);
+    //setHTTP("MUCHJURAT", "plo013677");
     
     setServo();
     setTemp();
