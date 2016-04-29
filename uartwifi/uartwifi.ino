@@ -878,6 +878,9 @@ void checkHTTP() {
                   res += "~";
                   res += PORT;
             }
+            else {
+              return;
+            }
 
             sendHTTPResponse(connectionId, res);
         }
