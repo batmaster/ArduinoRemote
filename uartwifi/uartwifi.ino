@@ -69,7 +69,6 @@ String BOARD_NAME;
 String STATIC_IP;
 String PORT;
 
-
 // ตัวแปรสำหรับแสดง 41 42
 String INTERNET_IP = "-";
 String INTRANET_IP = "-";
@@ -238,7 +237,7 @@ void resetBased() {
     lcd.setCursor(0, 0);
     lcd.print("resetting...");
 
-    setEEPROM(0, 0, 0, 25.00, 30.00, 3, "MUCHJURAT", "plo013677", "A0000", "0.0.0.0", "8081");
+    setEEPROM(0, 0, 0, 25.00, 30.00, 3, "SSID", "PASS", "default", "0.0.0.0", "8081");
 
     delay(500);
     lcd.setCursor(0, 0);
@@ -650,7 +649,7 @@ void checkTemp(int index) {
 
 // ตั้งค่าโมดูลไวไฟ ยุ่งยางมาก
 // #ไม่ต้องถามมาก เอามาจากเน็ต
-void setHTTP(String ssid, String pass) {
+void setHTTP(String ssid, String pass, int WIFI_MODE_TEMP = 0) {
     lcd.setCursor(0, 0);
     lcd.print("connecting...");
     lcd.setCursor(0, 1);
@@ -673,6 +672,7 @@ void setHTTP(String ssid, String pass) {
     delay(1000);
     Serial.println("5=========================");
     String x = sendCommand("AT+CIFSR\r\n",1000,DEBUG); // get ip address
+    
     if (WIFI_MODE == 1) {
         INTERNET_IP = splitString(x, '"', 1);
         INTERNET_IP = splitString(INTERNET_IP, '"', 0);
@@ -701,6 +701,20 @@ void setHTTP(String ssid, String pass) {
         INTERNET_MAC = splitString(INTERNET_MAC, '"', 0);
     }
 
+    if (INTERNET_IP.equals("")) {
+        INTERNET_IP = "-";
+    }
+    if (INTRANET_IP.equals("")) {
+        INTRANET_IP = "-";
+    }
+
+    if (INTERNET_IP.equals("-") && INTRANET_IP.equals("-")) {
+        WIFI_MODE_TEMP = WIFI_MODE;
+        WIFI_MODE = 2;
+        setHTTP(ssid, pass, WIFI_MODE_TEMP);
+        return;
+    }
+
     delay(1000);
     Serial.println("6=========================");
     sendCommand("AT+CIPMUX=1\r\n",1000,DEBUG); // configure for multiple connections
@@ -713,6 +727,14 @@ void setHTTP(String ssid, String pass) {
     delay(1000);
     Serial.println("8=========================");
 
+    if (WIFI_MODE_TEMP != 0) {
+        Serial.print("WIFI_MODE ");
+        Serial.print(WIFI_MODE);
+        WIFI_MODE = WIFI_MODE_TEMP;
+        Serial.print(" back to ");
+        Serial.println(WIFI_MODE);
+        WIFI_MODE_TEMP = 0;
+    }
     Serial.println("Server Ready");
 }
 
@@ -877,6 +899,18 @@ void checkHTTP() {
                   res += STATIC_IP;
                   res += "~";
                   res += PORT;
+
+                  if (reboot) {
+                      sendHTTPResponse(connectionId, res);
+
+                      lcd.setCursor(0, 0);
+                      lcd.print("rebooting...");
+                      wdt_enable(WDTO_1S);
+                      
+                      while (true) {
+              
+                      }
+                  }
             }
             else {
               return;
@@ -886,7 +920,6 @@ void checkHTTP() {
         }
     }
 }
-
 
 // ฟังก์ชั่นเริ่มต้นที่ arduino กำหนด
 // คือเรียกใช้แค่ครั้งเดียวตอนเปิดบอร์ด ตรงกันข้ามกับ loop()
