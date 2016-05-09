@@ -39,7 +39,7 @@ LiquidCrystal_I2C lcd(I2C_ADDR,2,1,0,4,5,6,7);
 
 // นำเข้าไลบรารี่ Keypad
 #include <Keypad.h>
-//กำหนดตัวอักษรบนปุ่ม
+//กำหนดตัวอักษรบนปุ่มแ้ำแย
 const byte ROWS = 4;
 const byte COLS = 4;
 
@@ -986,6 +986,17 @@ void checkKeypad() {
         if (lcdMode == 0) {
             if (c == '*') {
                 lcdMode = 1;
+            }
+            else if (c == 'C') {
+                HEATER_MODE = 1;
+                int state = digitalRead(RELAY_1);
+                digitalWrite(RELAY_1, state == LOW ? HIGH : LOW);
+                
+            }
+            else if (c == 'D') {
+                FILTER_MODE = 1;
+                int state = digitalRead(RELAY_2);
+                digitalWrite(RELAY_2, state == LOW ? HIGH : LOW);
             }
         }
         else if (lcdMode == 1) {
