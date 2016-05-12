@@ -367,7 +367,7 @@ void showLCD() {
 
         frame++;
     }
-    else if (lcdMode == 11) {
+    else if (lcdMode == 21) {
       lcd.setCursor(0, 0);
       lcd.print("feeding");
     }
@@ -426,12 +426,16 @@ void showLCD() {
     else if (lcdMode == 41) {
         lcd.setCursor(0, 0);
         lcd.print(INTERNET_IP);
+        lcd.print(":");
+        lcd.print(PORT);
         lcd.setCursor(0, 1);
         lcd.print(INTERNET_MAC);
     }
     else if (lcdMode == 42) {
         lcd.setCursor(0, 0);
         lcd.print(INTRANET_IP);
+        lcd.print(":");
+        lcd.print(PORT);
         lcd.setCursor(0, 1);
         lcd.print(INTRANET_MAC);
     }
