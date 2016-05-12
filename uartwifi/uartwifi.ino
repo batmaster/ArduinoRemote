@@ -96,7 +96,8 @@ double TEMP = 0;
 //  8+k+1+l+1       BOARD_NAME:m
 //  8+k+1+l+1+m     255
 //  8+k+1+l+1+m+1   STATIC_IP:4
-//  8+k+1+l+1+m+1+4 PORT:
+//  8+k+1+l+1+m+1+4 PORT:2
+//  8+k+1+l+1+m+1+4+2
 
 
 // ดึงค่าตัวแปรพื้นฐานจากหน่วยความจำ
@@ -425,17 +426,15 @@ void showLCD() {
     }
     else if (lcdMode == 41) {
         lcd.setCursor(0, 0);
-        lcd.print(INTERNET_IP);
-        lcd.print(":");
-        lcd.print(PORT);
+        String ipp = INTERNET_IP + ":" + PORT;
+        lcd.print(ipp);
         lcd.setCursor(0, 1);
         lcd.print(INTERNET_MAC);
     }
     else if (lcdMode == 42) {
         lcd.setCursor(0, 0);
-        lcd.print(INTRANET_IP);
-        lcd.print(":");
-        lcd.print(PORT);
+        String ipp = INTRANET_IP + ":" + PORT;
+        lcd.print(ipp);
         lcd.setCursor(0, 1);
         lcd.print(INTRANET_MAC);
     }
